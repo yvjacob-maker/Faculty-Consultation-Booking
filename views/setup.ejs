@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="referrer" content="no-referrer">
+<meta name="robots" content="noindex,nofollow">
+<title><%= title %></title>
+<link rel="stylesheet" href="/css/styles.css">
+<script src="/js/password-policy.js"></script>
+<style>
+  body{min-height:100dvh}
+  .setup-shell{display:grid;place-items:center;min-height:100dvh;padding:26px 18px}
+  .setup-card{width:100%;max-width:480px;padding:30px 30px 26px;border-radius:18px}
+  .setup-brand{display:flex;align-items:center;gap:13px;margin-bottom:20px}
+  .setup-brand .seal{width:54px;height:54px;margin:0;flex:none}
+  .setup-brand small{display:block;color:var(--gold);font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;font-weight:700}
+  .setup-brand b{display:block;font-family:"Source Serif 4",Georgia,serif;font-size:1.02rem;line-height:1.25}
+  .setup-card h1{font-size:1.55rem;text-align:center;margin:4px 0 4px}
+  .setup-card>.sub{text-align:center;margin:0 0 18px}
+  .setup-meta{display:grid;gap:3px;padding:11px 14px;margin:0 0 16px;border:1px solid var(--line);border-radius:10px;background:var(--hl);font-size:.9rem}
+  .setup-meta span{color:var(--mute)}
+  .setup-card .notice{border-radius:10px;border-left:4px solid var(--warn);background:var(--glass2);line-height:1.5}
+  .setup-card .btn.full{margin-top:16px;text-align:center;text-decoration:none;display:block}
+  .setup-done{text-align:center;padding:4px 0 2px}
+  .setup-done .pwicon{background:color-mix(in srgb,var(--ok) 16%,transparent);color:var(--ok)}
+  .setup-done h2{font-size:1.22rem;margin:0 0 6px}
+  .setup-legal{text-align:center;color:var(--mute);font-size:.78rem;margin:16px 0 0}
+</style>
+</head>
+<body>
+<main class="setup-shell">
+  <section class="panel setup-card" aria-labelledby="setupTitle">
+    <div class="setup-brand">
+      <img class="seal" src="/assets/seal.png" alt="Camarines Sur Polytechnic Colleges seal">
+      <div>
+        <small>College of Computer Studies</small>
+        <b>Faculty Consultation Booking System</b>
+      </div>
+    </div>
+
+    <% if (valid) { %>
+      <div class="pwicon" aria-hidden="true">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+      </div>
+      <h1 id="setupTitle">Create your password</h1>
+      <p class="sub">Finish setting up your CCS consultation account.</p>
+
+      <div class="setup-meta">
+        <div><span>User ID</span> <b><%= username %></b></div>
+        <div><span>Name</span> <%= fullName %></div>
+        <div><span>Link expires</span> <%= new Date(expiresAt).toUTCString() %></div>
+      </div>
+
+      <form id="setupForm" novalidate>
+        <input type="hidden" name="token" value="<%= token %>">
+        <label for="setupPw">New password</label>
+        <div class="pwwrap">
+          <input id="setupPw" type="password" minlength="8" maxlength="72" autocomplete="new-password" required autofocus aria-describedby="setupPwHint setupPwCheck">
+          <button type="button" class="eye" id="togglePw" aria-label="Show password" aria-pressed="false">Show</button>
+        </div>
+        <p class="help" id="setupPwHint">Use 8-72 characters with uppercase, lowercase, number, and symbol. Use a password you do not use elsewhere.</p>
+        <div id="setupPwCheck" aria-live="polite"></div>
+
+        <label for="setupPw2">Confirm password</label>
+        <div class="pwwrap">
+          <input id="setupPw2" type="password" minlength="8" maxlength="72" autocomplete="new-password" required>
+          <button type="button" class="eye" id="togglePw2" aria-label="Show password" aria-pressed="false">Show</button>
+        </div>
+
+        <p class="err" id="setupMsg" role="alert" aria-live="polite"></p>
+        <button class="btn full" id="setupBtn" type="submit">Create password</button>
+      </form>
+
+      <div class="setup-done" id="setupDone" hidden>
+        <div class="pwicon" aria-hidden="true">
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 4 4L19 6"/></svg>
+        </div>
+        <h2>Password created</h2>
+        <p class="sub">Your account is ready. Sign in with your User ID and new password.</p>
+        <a class="btn full" href="/">Go to sign in</a>
+      </div>
+    <% } else { %>
+      <h1 id="setupTitle">Setup link unavailable</h1>
+      <p class="sub">The link in your email cannot be used.</p>
+      <div class="notice" role="alert"><%= message %></div>
+      <a class="btn full" href="/">Back to sign in</a>
+    <% } %>
+
+    <p class="setup-legal">College of Computer Studies · Camarines Sur Polytechnic Colleges</p>
+  </section>
+</main>
+
+<% if (valid) { %>
+<script>
+(function () {
+  var form = document.getElementById('setupForm');
+  if (!form) return;
+  var pw = document.getElementById('setupPw');
+  var pw2 = document.getElementById('setupPw2');
+  var msg = document.getElementById('setupMsg');
+  var btn = document.getElementById('setupBtn');
+  var done = document.getElementById('setupDone');
+  var check = document.getElementById('setupPwCheck');
+  var toggles = document.querySelectorAll('.eye');
+
+  function toggle(input, button) {
+    var show = input.type === 'password';
+    input.type = show ? 'text' : 'password';
+    button.textContent = show ? 'Hide' : 'Show';
+    button.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+    button.setAttribute('aria-pressed', show ? 'true' : 'false');
+  }
+
+  toggles.forEach(function (button) {
+    button.addEventListener('click', function () {
+      toggle(button.id === 'togglePw' ? pw : pw2, button);
+    });
+  });
+
+  function renderCheck() {
+    if (check) check.innerHTML = pwReqHTML(pw.value, pw2.value);
+  }
+  pw.addEventListener('input', renderCheck);
+  pw2.addEventListener('input', renderCheck);
+  renderCheck();
+
+  form.addEventListener('submit', async function (event) {
+    event.preventDefault();
+    msg.textContent = '';
+    var policyError = pwError(pw.value);
+    if (policyError) {
+      msg.textContent = policyError;
+      pw.focus();
+      return;
+    }
+    if (pw.value !== pw2.value) {
+      msg.textContent = 'The two passwords do not match.';
+      pw2.focus();
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Creating password...';
+    try {
+      var response = await fetch('/api/setup-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: form.token.value, password: pw.value })
+      });
+      var data = await response.json().catch(function () { return {}; });
+      if (!response.ok) throw new Error(data.error || 'Could not create your password. Ask the admin for a new link.');
+      form.hidden = true;
+      done.hidden = false;
+      pw.value = '';
+      pw2.value = '';
+    } catch (error) {
+      msg.textContent = error.message || 'Could not create your password. Ask the admin for a new link.';
+      btn.disabled = false;
+      btn.textContent = 'Create password';
+    }
+  });
+})();
+</script>
+<% } %>
+</body>
+</html>

@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title><%= title %></title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Source+Serif+4:wght@600;700&display=swap">
+<script src="/vendor/jquery/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<link rel="stylesheet" href="/css/styles.css">
+<script src="/js/password-policy.js"></script>
+</head>
+<body>
+<div id="app"></div>
+<div class="toast" id="toast" role="status"></div>
+<button type="button" id="totop" class="totop" aria-label="Scroll to top" title="Back to top"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button>
+<script>
+// Hydrate the existing client state from SQLite before the UI initializes.
+(async function () {
+  const nativeSet = Storage.prototype.setItem;
+  const nativeRemove = Storage.prototype.removeItem;
+  const state = {};
+  try {
+    const response = await fetch('/api/app-state');
+    if (response.ok) {
+      const payload = await response.json();
+      Object.keys(payload.state || {}).forEach(key => {
+        state[key] = payload.state[key];
+        nativeSet.call(localStorage, key, JSON.stringify(payload.state[key]));
+      });
+    }
+  } catch (error) { console.warn('Could not hydrate saved data from SQLite.', error); }
+  let saveTimer;
+  function persistState() {
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => {
+      const snapshot = {};
+      Object.keys(localStorage).forEach(key => {
+        if (/^sis-[a-z0-9-]+-v7$/.test(key)) {
+          try { snapshot[key] = JSON.parse(localStorage.getItem(key)); } catch (_) {}
+        }
+      });
+      fetch('/api/app-state', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ state: snapshot }) })
+        .then(response => { if (!response.ok) throw new Error('Save failed'); })
+        .catch(error => console.error('Could not save data to SQLite.', error));
+    }, 120);
+  }
+  Storage.prototype.setItem = function (key, value) {
+    nativeSet.call(this, key, value);
+    if (this === localStorage && /^sis-[a-z0-9-]+-v7$/.test(String(key))) persistState();
+  };
+  Storage.prototype.removeItem = function (key) {
+    nativeRemove.call(this, key);
+    if (this === localStorage && /^sis-[a-z0-9-]+-v7$/.test(String(key))) persistState();
+  };
+  const app = document.createElement('script');
+  app.src = '/js/app.js';
+  document.body.appendChild(app);
+})();
+</script>
+</body>
+</html>
