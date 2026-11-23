@@ -56,7 +56,13 @@ function sorted(a){return a.slice().sort(function(x,y){return (x.date+x.time)<(y
 function sortedNewest(a){return a.slice().sort(function(x,y){var xc=x.created?Date.parse(x.created):0,yc=y.created?Date.parse(y.created):0;if(xc!==yc)return yc-xc;return (x.date+x.time)<(y.date+y.time)?1:-1;});}
 function toast(m){var t=$("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show");},2600);}
 function copyText(tx,ok){var bad=function(){toast("Could not copy. Select the password and copy it manually.");};try{navigator.clipboard.writeText(tx).then(function(){toast(ok||"Copied to the clipboard");},bad);}catch(x){bad();}}
-async function reqJSON(url,opts){var r=await fetch(url,opts||{}),d={};try{d=await r.json();}catch(x){}if(!r.ok)throw new Error((d&&d.error)||"Request failed.");return d;}
+function expireClientSession(){
+  if(!st.user)return;
+  st.user=null;st.mustChange=false;st.showLogin=true;st.view="";st.mail=null;st.pwlist=null;st.pwpop=null;st.emailAcct=null;
+  try{sessionStorage.removeItem(SKEY);sessionStorage.removeItem(TMPKEY);history.replaceState(null,"",location.pathname+location.search);}catch(x){}
+  render();toast("Your session expired. Please log in again.");
+}
+async function reqJSON(url,opts){var r=await fetch(url,opts||{}),d={};try{d=await r.json();}catch(x){}if(r.status===401)expireClientSession();if(!r.ok)throw new Error((d&&d.error)||"Request failed.");return d;}
 function emailOk(v){return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(v||""));}
 function mkref(date){var c="ABCDEFGHJKLMNPQRSTUVWXYZ23456789",r="";for(var i=0;i<4;i++)r+=c[Math.floor(Math.random()*c.length)];return "CB-"+date.replace(/-/g,"")+"-"+r;}
 function rid(p){return p+Date.now()+Math.random().toString(36).slice(2,6);}
@@ -1087,7 +1093,8 @@ if(st.user){var hv0=hashRoute();if(hv0){if(VF[hv0])st.view=hv0;else st.nf=hv0;}}
 render();
 if(st.user){
   fetch("/api/session",{credentials:"same-origin"}).then(function(r){return r.ok?r.json():null;}).then(function(d){
-    if(!d||!d.user||!st.user||d.user.username!==st.user.id)return;
+    if(!st.user||!d)return;
+    if(!d.user||d.user.username!==st.user.id||d.user.role!==st.user.role){expireClientSession();return;}
     var forced=!!d.user.mustChangePassword;
     if(st.mustChange===forced)return;
     st.mustChange=forced;

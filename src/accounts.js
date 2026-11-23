@@ -590,7 +590,7 @@ function randomPassword(length) {
 }
 
 async function resetPassword({ username, actor }) {
-  const account = await get('SELECT id, username, email FROM accounts WHERE username = ?', [username]);
+  const account = await get('SELECT id, full_name, username, email FROM accounts WHERE username = ?', [username]);
   if (!account) throw httpError(404, 'Account not found.');
 
   const password = randomPassword(12);
@@ -649,7 +649,7 @@ async function resetPassword({ username, actor }) {
 
     await run(
       'INSERT INTO activity_logs (actor, action, details) VALUES (?, ?, ?)',
-      [actor || 'system', 'Password reset', `${account.username} - temporary password issued; change required on first sign-in${job ? '; credentials email queued' : '; no email on file'}`]
+      [actor || 'system', 'Password reset', `${account.full_name} (${account.username}) - temporary password issued; change required on first sign-in${job ? '; credentials email queued' : '; no email on file'}`]
     );
     return { job, email };
   });

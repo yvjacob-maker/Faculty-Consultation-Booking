@@ -1,6 +1,7 @@
 require('dotenv').config({ quiet: true });
 const express = require('express');
 const session = require('express-session');
+const SQLiteStore = require('connect-sqlite3')(session);
 const bcrypt = require('bcryptjs');
 const path = require('path');
 const fs = require('fs');
@@ -16,6 +17,13 @@ if (SESSION_SECRET.length < 32 || /change-this|replace-with/i.test(SESSION_SECRE
   console.error('SESSION_SECRET is missing or too weak. Set a long random value in .env before starting.');
   process.exit(1);
 }
+const sessionStore = new SQLiteStore({
+  db: 'sessions.sqlite',
+  dir: path.dirname(db.dbPath),
+  createDirIfNotExists: true,
+  concurrentDb: true
+});
+const sessionStoreReady = new Promise(resolve => sessionStore.client.once('connect', resolve));
 
 function wrap(handler) {
   return (req, res, next) => Promise.resolve(handler(req, res, next)).catch(next);
@@ -27,6 +35,7 @@ app.use(express.urlencoded({ extended: true, limit: '6mb' }));
 app.use(express.json({ limit: '6mb' }));
 app.use(session({
   secret: SESSION_SECRET,
+  store: sessionStore,
   resave: false,
   saveUninitialized: false,
   cookie: { httpOnly: true, sameSite: 'lax' }
@@ -65,8 +74,9 @@ function requirePasswordCurrent(req, res, next) {
 }
 function requireRole(...roles) {
   return (req, res, next) => {
-    const actualRole = req.session.user && req.session.user.role === 'admin' ? 'administrator' : req.session.user && req.session.user.role;
-    if (!req.session.user || !(roles.includes(actualRole) || roles.includes(req.session.user.role))) return res.status(403).json({ error: 'You do not have permission to do this.' });
+    if (!req.session.user) return res.status(401).json({ error: 'Please log in first.' });
+    const actualRole = req.session.user.role === 'admin' ? 'administrator' : req.session.user.role;
+    if (!(roles.includes(actualRole) || roles.includes(req.session.user.role))) return res.status(403).json({ error: 'You do not have permission to do this.' });
     if (req.session.user.mustChangePassword) {
       return res.status(403).json({
         error: 'Change your temporary password before continuing.',
@@ -487,9 +497,9 @@ app.use((err, req, res, next) => {
   console.error(err);
   res.status(500).json({ error: 'An unexpected server error occurred.' });
 });
-db.ready.then(() => {
+Promise.all([db.ready, sessionStoreReady]).then(() => {
   app.listen(PORT, () => console.log(`CCS Consultation System running at http://localhost:${PORT}`));
 }).catch((error) => {
-  console.error('Server did not start because the database could not be initialized:', error.message);
+  console.error('Server did not start because the database or session store could not be initialized:', error.message);
   process.exitCode = 1;
 });
