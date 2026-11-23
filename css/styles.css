@@ -83,6 +83,9 @@ details table{margin-top:8px;font-size:.82rem}
 .slot:disabled{color:var(--mute);opacity:.6;text-decoration:line-through;cursor:not-allowed}
 .sum{margin:0}.sum dt{color:var(--mute);font-size:.84rem;margin-top:10px}.sum dd{margin:0;font-weight:500}
 .tw{overflow-x:auto;margin-bottom:16px}
+.pagination{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin:-4px 0 16px}
+.pagination-actions{display:flex;align-items:center;gap:10px}
+.pagination .btn{white-space:nowrap}
 table{border-collapse:collapse;width:100%}
 th{text-align:left;font-weight:600;color:var(--mute);background:var(--hl);font-size:.84rem;white-space:nowrap}
 th,td{padding:10px 14px;border-bottom:1px solid var(--line);vertical-align:top}

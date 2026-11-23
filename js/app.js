@@ -116,7 +116,7 @@ function themeBtn(){var d=theme()==="dark";return '<button type="button" class="
 function themeSwitch(){var d=theme()==="dark";return '<button type="button" class="tsw" role="switch" aria-checked="'+d+'" data-theme-toggle="1" aria-label="Dark mode">'+SUN+'<span class="trk"><span class="knob"></span></span>'+MOON+'</button>';}
 function clocks(){var d=new Date(),t=d.toLocaleTimeString(undefined,{hour:"numeric",minute:"2-digit",second:"2-digit"}),dt=d.toLocaleDateString(undefined,{weekday:"long",month:"long",day:"numeric",year:"numeric"});document.querySelectorAll("[data-ct]").forEach(function(n){n.textContent=t;});document.querySelectorAll("[data-cd]").forEach(function(n){n.textContent=dt;});}
 
-var st={showLogin:false,brf:"all",bpf:"all",lq:"",lrf:"all",lpf:"all",uq:"",urf:"all",upf:"all",aform:null,pwlist:null,pwpop:null,pwfocus:false,emailAcct:null,emailFocus:false,lrole:"student",lpw:"",lid:"",lerr:"",user:null,view:"",nf:"",crashed:false,mustChange:false,fac:null,date:null,time:null,mode:"face",form:{em:"",cn:CONCERNS[0],nt:"",rs:""},err:"",notice:"",ff:"pending",as:"all",af:"all",q:"",cb:null,rb:null,rdate:null,rtime:null,imp:null,impRole:"student",impSeq:0,mail:null,mailBusy:false,aerr:"",perr:"",pok:""};
+var st={showLogin:false,brf:"all",bpf:"all",lq:"",lrf:"all",lpf:"all",uq:"",urf:"all",upf:"all",pages:{},aform:null,pwlist:null,pwpop:null,pwfocus:false,emailAcct:null,emailFocus:false,lrole:"student",lpw:"",lid:"",lerr:"",user:null,view:"",nf:"",crashed:false,mustChange:false,fac:null,date:null,time:null,mode:"face",form:{em:"",cn:CONCERNS[0],nt:"",rs:""},err:"",notice:"",ff:"pending",as:"all",af:"all",q:"",cb:null,rb:null,rdate:null,rtime:null,imp:null,impRole:"student",impSeq:0,mail:null,mailBusy:false,aerr:"",perr:"",pok:""};
 function logEv(a,d,who){who=who||st.user;logs.push({t:new Date().toISOString(),u:who?who.name:"Unknown",ro:who?who.role:"none",a:a,d:d||"",uid:(who&&who.id)?who.id:""});saveAll();}
 function notify(to,text,kind,bid){if(!to)return;notifs.push({id:rid("n"),to:to,t:new Date().toISOString(),kind:kind,text:text,bid:bid||"",read:false});put(NKEY,notifs.slice(-500));}
 function getB(id){return bookings.filter(function(b){return b.id===id;})[0];}
@@ -141,9 +141,28 @@ function canView(v){return !!st.user&&VIEWS[st.user.role].some(function(x){retur
 try{var sid0=sessionStorage.getItem(SKEY),su=sid0&&uById(sid0);if(su&&!disabled[su.id]){st.user=su;st.view=VIEWS[su.role][0][0];st.mustChange=sessionStorage.getItem(TMPKEY)==="1";}}catch(e){}
 
 function tag(s){return '<span class="st s-'+s+'">'+s.charAt(0).toUpperCase()+s.slice(1)+'</span>';}
-function tbl(h,rows,empty,ids){
+var PAGE_SIZE=20;
+function pageWindow(key,total){
+  var pageCount=Math.max(1,Math.ceil(total/PAGE_SIZE));
+  var current=Math.min(Math.max(1,parseInt(st.pages[key],10)||1),pageCount);
+  st.pages[key]=current;
+  var start=(current-1)*PAGE_SIZE;
+  return {start:start,end:Math.min(start+PAGE_SIZE,total),current:current,pages:pageCount,total:total};
+}
+function pageControls(key,total){
+  if(total<=PAGE_SIZE)return "";
+  var page=pageWindow(key,total);
+  return '<nav class="pagination" aria-label="Pagination"><span class="sub">Showing '+(page.start+1)+'-'+page.end+' of '+total+'</span><div class="pagination-actions"><button type="button" class="btn sm ghost" data-page-key="'+key+'" data-page-set="'+(page.current-1)+'"'+(page.current===1?" disabled":"")+'>Previous</button><span class="sub">Page '+page.current+' of '+page.pages+'</span><button type="button" class="btn sm ghost" data-page-key="'+key+'" data-page-set="'+(page.current+1)+'"'+(page.current===page.pages?" disabled":"")+'>Next</button></div></nav>';
+}
+function pagedList(key,items){
+  var page=pageWindow(key,items.length);
+  return {items:items.slice(page.start,page.end),controls:pageControls(key,items.length)};
+}
+function tbl(h,rows,empty,ids,pageKey){
   if(!rows.length)return '<div class="tw"><p class="empty">'+empty+'</p></div>';
-  return '<div class="tw"><table><thead><tr>'+h.map(function(x){return "<th>"+x+"</th>";}).join("")+'</tr></thead><tbody>'+rows.map(function(r,i){var id=ids&&ids[i];return "<tr"+(id?' class="clk" data-bid="'+esc(id)+'" tabindex="0" title="Click to see the booking details"':"")+">"+r.map(function(c){return "<td>"+c+"</td>";}).join("")+"</tr>";}).join("")+'</tbody></table></div>';
+  var controls="";
+  if(pageKey){var page=pageWindow(pageKey,rows.length);rows=rows.slice(page.start,page.end);if(ids)ids=ids.slice(page.start,page.end);controls=pageControls(pageKey,page.total);}
+  return '<div class="tw"><table><thead><tr>'+h.map(function(x){return "<th>"+x+"</th>";}).join("")+'</tr></thead><tbody>'+rows.map(function(r,i){var id=ids&&ids[i];return "<tr"+(id?' class="clk" data-bid="'+esc(id)+'" tabindex="0" title="Click to see the booking details"':"")+">"+r.map(function(c){return "<td>"+c+"</td>";}).join("")+"</tr>";}).join("")+'</tbody></table></div>'+controls;
 }
 function bars(items){
   var m=Math.max.apply(null,items.map(function(i){return i[1];}).concat([1]));
@@ -229,12 +248,12 @@ function vMine(){
   var u=st.user,l=sortedNewest(bookings.filter(function(b){return b.sid===u.id;}));
   var h='<h1>My bookings</h1><p class="lead">Track your consultations. You can chat, request a different time, or cancel a booking.</p>';
   if(st.notice){h+='<div class="notice" role="status">'+esc(st.notice)+'</div>';st.notice="";}
-  return h+tbl(["Reference","Faculty and subject","Date and time","Type","Concern","Status","Actions"],l.map(function(b){var f=fById(b.fid);return ['<span class="mono">'+esc(b.ref)+'</span>',esc(f.name)+'<div class="sub">'+esc(b.topic)+'</div>',dtCell(b),modeCell(b),concernCell(b),tag(b.status),'<div class="acts"><button class="btn sm ghost" data-openchat="'+b.id+'">Chat</button>'+(active(b)&&!b.req?'<button class="btn sm ghost" data-rs2="'+b.id+'">Reschedule</button>':"")+(active(b)?'<button class="btn sm ghost" data-cancel="'+b.id+'">Cancel</button>':"")+'</div>'];}),"You have no bookings yet. Open “Book a consultation” to send a request.",l.map(function(b){return b.id;}));
+  return h+tbl(["Reference","Faculty and subject","Date and time","Type","Concern","Status","Actions"],l.map(function(b){var f=fById(b.fid);return ['<span class="mono">'+esc(b.ref)+'</span>',esc(f.name)+'<div class="sub">'+esc(b.topic)+'</div>',dtCell(b),modeCell(b),concernCell(b),tag(b.status),'<div class="acts"><button class="btn sm ghost" data-openchat="'+b.id+'">Chat</button>'+(active(b)&&!b.req?'<button class="btn sm ghost" data-rs2="'+b.id+'">Reschedule</button>':"")+(active(b)?'<button class="btn sm ghost" data-cancel="'+b.id+'">Cancel</button>':"")+'</div>'];}),"You have no bookings yet. Open “Book a consultation” to send a request.",l.map(function(b){return b.id;}),"mineBookings");
 }
 function vDone(){
   var u=st.user,stu=u.role==="student",l=sorted(bookings.filter(function(b){return b.status==="completed"&&owns(u,b);})).reverse();
   var h='<h1>Completed consultations</h1><p class="lead">'+(stu?"Your finished consultations.":"Consultations you have marked as done.")+' Select a row to see its details. '+l.length+' completed.</p>';
-  return h+tbl(["Reference",stu?"Faculty and subject":"Student and subject","Date and time","Type","Concern","Completed on"],l.map(function(b){var f=fById(b.fid);return ['<span class="mono">'+esc(b.ref)+'</span>',stu?esc(f.name)+'<div class="sub">'+esc(b.topic)+'</div>':esc(b.name)+'<div class="sub">'+esc(b.topic)+'</div>',dtCell(b),MODES[b.mode||"face"],esc(b.concern||"—"),b.doneAt?esc(ts(b.doneAt)):"—"];}),"No completed consultations yet. When a faculty member marks a confirmed consultation as done, it appears here.",l.map(function(b){return b.id;}));
+  return h+tbl(["Reference",stu?"Faculty and subject":"Student and subject","Date and time","Type","Concern","Completed on"],l.map(function(b){var f=fById(b.fid);return ['<span class="mono">'+esc(b.ref)+'</span>',stu?esc(f.name)+'<div class="sub">'+esc(b.topic)+'</div>':esc(b.name)+'<div class="sub">'+esc(b.topic)+'</div>',dtCell(b),MODES[b.mode||"face"],esc(b.concern||"—"),b.doneAt?esc(ts(b.doneAt)):"—"];}),"No completed consultations yet. When a faculty member marks a confirmed consultation as done, it appears here.",l.map(function(b){return b.id;}),"completedBookings");
 }
 function detailHTML(){
   var u=st.user,b=getB(st.detail);
@@ -286,7 +305,7 @@ function vInbox(){
     if(active(b))a+='<button class="btn sm ghost" data-rs2="'+b.id+'">Reschedule</button>';
     if(b.status==="confirmed")a+='<button class="btn sm ok" data-done="'+b.id+'">Mark as done</button>';
     a+='<button class="btn sm ghost" data-openchat="'+b.id+'">Chat</button>';
-    return ['<span class="mono">'+esc(b.ref)+'</span>',esc(b.name)+'<div class="sub">'+esc(b.sid)+'</div><div class="sub">'+esc(b.topic)+'</div>',dtCell(b),modeCell(b),concernCell(b)+(b.req&&b.req.reason?'<div class="sub">Reason for change: '+esc(b.req.reason)+'</div>':""),tag(b.status),'<div class="acts">'+a+'</div>'];}),"No requests match this filter.",l.map(function(b){return b.id;}));
+    return ['<span class="mono">'+esc(b.ref)+'</span>',esc(b.name)+'<div class="sub">'+esc(b.sid)+'</div><div class="sub">'+esc(b.topic)+'</div>',dtCell(b),modeCell(b),concernCell(b)+(b.req&&b.req.reason?'<div class="sub">Reason for change: '+esc(b.req.reason)+'</div>':""),tag(b.status),'<div class="acts">'+a+'</div>'];    }),"No requests match this filter.",l.map(function(b){return b.id;}),"facultyInbox");
 }
 function vResched(){
   var u=st.user,b=getB(st.rb);
@@ -327,7 +346,8 @@ function vChat(){
   if(st.attachFor&&st.attachFor!==cur.b.id)clearAttach();
   reads[u.id+"|"+cur.b.id]=cur.ms.length;put(RKEY,reads);th=threadsFor(u);
   var b=cur.b,f=fById(b.fid),other=u.role==="student"?f.name:b.name,closed=!active(b),pend=(st.attachFor===b.id&&st.attach)?st.attach:[];
-  h+='<div class="chatwrap"><div class="threads panel">'+th.map(function(t){var o=u.role==="student"?fById(t.b.fid).name:t.b.name;return '<button class="thr" data-th="'+t.b.id+'" aria-pressed="'+(t.b.id===b.id)+'"><b>'+esc(o)+(t.un?'<span class="nbadge">'+t.un+'</span>':'')+'</b><small>'+esc(nice(t.b.date))+', '+t12(t.b.time)+'</small><small>'+MODES[t.b.mode||"face"]+' · '+t.b.status+'</small></button>';}).join("")+'</div>';
+  var threadPage=pagedList("chatThreads",th);
+  h+='<div class="chatwrap"><div class="threads panel">'+threadPage.items.map(function(t){var o=u.role==="student"?fById(t.b.fid).name:t.b.name;return '<button class="thr" data-th="'+t.b.id+'" aria-pressed="'+(t.b.id===b.id)+'"><b>'+esc(o)+(t.un?'<span class="nbadge">'+t.un+'</span>':'')+'</b><small>'+esc(nice(t.b.date))+', '+t12(t.b.time)+'</small><small>'+MODES[t.b.mode||"face"]+' · '+t.b.status+'</small></button>';}).join("")+threadPage.controls+'</div>';
   h+='<div class="panel chatpane"><div class="chead"><div><h2 style="margin:0">'+esc(other)+'</h2><p class="sub" style="margin:0">'+esc(nice(b.date))+' at '+t12(b.time)+' · '+MODES[b.mode||"face"]+'</p></div>'+tag(b.status)+'</div>';
   if(b.mode==="online"&&b.status==="confirmed"&&okMeet(f.meet))h+='<p class="sub" style="margin:0 0 8px"><a href="'+esc(f.meet)+'" target="_blank" rel="noopener noreferrer">Join Google Meet</a></p>';
   h+='<div class="msgs" id="msgs">'+(cur.ms.length?cur.ms.map(function(m){return '<div class="bub'+(m.uid===u.id?" me":"")+'"><span class="who">'+esc(m.name)+'</span>'+msgBody(m)+'<span class="when">'+ts(m.t)+'</span></div>';}).join(""):'<p class="empty">No messages yet. Say hello.</p>')+'</div>';
@@ -339,8 +359,9 @@ function vChat(){
 function vNotif(){
   var u=st.user,rem=reminders(u),l=notifs.filter(function(n){return n.to===u.id;}).slice().reverse(),today=iso(new Date()),tom=iso(new Date(Date.now()+864e5));
   var h='<h1>Notifications</h1><p class="lead">Updates about approved, rejected and rescheduled consultations, plus reminders for upcoming ones. Select an item to open the related booking. Email notifications are not enabled in this version.</p>';
-  if(rem.length)h+='<div class="panel"><h2>Upcoming reminders</h2>'+rem.map(function(b){var w=b.date===today?"today":b.date===tom?"tomorrow":"on "+nice(b.date);return '<button type="button" class="nrow remrow" data-gobid="'+b.id+'" title="Open booking details"><span>Reminder: consultation with '+esc(u.role==="student"?fById(b.fid).name:b.name)+' '+w+' at '+t12(b.time)+' ('+MODES[b.mode||"face"]+').</span></button>';}).join("")+'</div>';
-  h+='<div class="panel"><h2>Recent updates</h2>'+(l.length?l.slice(0,50).map(function(n){return '<button type="button" class="nrow'+(n.read?"":" unread")+'" data-nid="'+n.id+'" title="Open"><span>'+esc(n.text)+'</span><span class="sub">'+ts(n.t)+'</span></button>';}).join(""):'<p class="empty">No notifications yet.</p>')+'</div>';
+  var reminderPage=pagedList("reminders",rem),notificationPage=pagedList("notifications",l);
+  if(rem.length)h+='<div class="panel"><h2>Upcoming reminders</h2>'+reminderPage.items.map(function(b){var w=b.date===today?"today":b.date===tom?"tomorrow":"on "+nice(b.date);return '<button type="button" class="nrow remrow" data-gobid="'+b.id+'" title="Open booking details"><span>Reminder: consultation with '+esc(u.role==="student"?fById(b.fid).name:b.name)+' '+w+' at '+t12(b.time)+' ('+MODES[b.mode||"face"]+').</span></button>';}).join("")+reminderPage.controls+'</div>';
+  h+='<div class="panel"><h2>Recent updates</h2>'+(l.length?notificationPage.items.map(function(n){return '<button type="button" class="nrow'+(n.read?"":" unread")+'" data-nid="'+n.id+'" title="Open"><span>'+esc(n.text)+'</span><span class="sub">'+ts(n.t)+'</span></button>';}).join("")+notificationPage.controls:'<p class="empty">No notifications yet.</p>')+'</div>';
   var ch=false;notifs.forEach(function(n){if(n.to===u.id&&!n.read){n.read=true;ch=true;}});if(ch)put(NKEY,notifs.slice(-500));markRemSeen(u);
   return h;
 }
@@ -349,7 +370,7 @@ function vAvail(){
   return '<h1>My availability</h1><p class="lead">Choose the days and times students can book with you, plus your room and Google Meet link. Existing bookings are not affected.</p><div class="panel"><h2>Consultation days</h2><div class="days">'+[1,2,3,4,5].map(function(d){return '<button class="day" data-wd="'+d+'" aria-pressed="'+(f.days.indexOf(d)>-1)+'">'+WD[d]+'</button>';}).join("")+'</div><h2 style="margin-top:14px">Time slots</h2><div class="slots">'+POOL.map(function(t){return '<button class="slot" data-sl="'+t+'" aria-pressed="'+(f.slots.indexOf(t)>-1)+'">'+t12(t)+'</button>';}).join("")+'</div><div class="cols"><div><label for="rm">Consultation room</label><input id="rm" data-s2="room" value="'+esc(f.room)+'"></div><div><label for="mt">Google Meet link (online consultations)</label><input id="mt" data-s2="meet" placeholder="https://meet.google.com/abc-defg-hij" value="'+esc(f.meet||"")+'"></div></div></div>';
 }
 function cnt(s){return bookings.filter(function(b){return b.status===s;}).length;}
-function logTbl(l,empty){return tbl(["Time","User","Role","Action","Detail"],l.map(function(e){return [ts(e.t),esc(e.u),e.ro==="none"?"—":ROLE[e.ro],esc(e.a),'<span class="mono">'+esc(e.d)+'</span>'];}),empty||"No activity recorded.");}
+function logTbl(l,empty,pageKey){return tbl(["Time","User","Role","Action","Detail"],l.map(function(e){return [ts(e.t),esc(e.u),e.ro==="none"?"—":ROLE[e.ro],esc(e.a),'<span class="mono">'+esc(e.d)+'</span>'];}),empty||"No activity recorded.",null,pageKey);}
 function vDash(){
   var tot=bookings.length,okc=cnt("confirmed")+cnt("completed"),dec=okc+cnt("declined"),rate=dec?Math.round(100*okc/dec):0;
   var ins=logs.filter(function(e){return e.a==="Signed in";}).length,fl=logs.filter(function(e){return e.a==="Failed sign-in"||e.a==="Blocked sign-in";}).length;
@@ -381,7 +402,7 @@ function vAll(){
   var l=sortedNewest(bookings.filter(function(b){var stu=uById(b.sid);return (st.as==="all"||b.status===st.as)&&(st.af==="all"||b.fid===st.af)&&(st.brf==="all"||lastActor(b)===st.brf)&&(st.bpf==="all"||progOf(stu&&stu.unit)===st.bpf)&&mq(b);}));
   var h='<h1>All bookings</h1><p class="lead">Read-only view of every consultation request. Select a row to see its details. '+l.length+' of '+bookings.length+' shown.</p>';
   h+=fbar("q","xq","Name, ID, reference, subject…",sel("as",st.as,STATS,"Status")+sel("af",st.af,[["all","All faculty"]].concat(FAC.map(function(f){return [f.id,f.name];})),"Faculty member")+sel("brf",st.brf,ROLEOPTS,"Last action by")+sel("bpf",st.bpf,PROGOPTS,"Student program"),"bookings");
-  return h+tbl(["Reference","Student","Faculty and subject","Date and time","Type","Concern","Status"],l.map(function(b){return ['<span class="mono">'+esc(b.ref)+'</span>',esc(b.name)+'<div class="sub">'+esc(b.sid)+'</div>',esc(fById(b.fid).name)+'<div class="sub">'+esc(b.topic)+'</div>',dtCell(b),MODES[b.mode||"face"],esc(b.concern||"—"),tag(b.status)];}),"No bookings match these filters.",l.map(function(b){return b.id;}));
+  return h+tbl(["Reference","Student","Faculty and subject","Date and time","Type","Concern","Status"],l.map(function(b){return ['<span class="mono">'+esc(b.ref)+'</span>',esc(b.name)+'<div class="sub">'+esc(b.sid)+'</div>',esc(fById(b.fid).name)+'<div class="sub">'+esc(b.topic)+'</div>',dtCell(b),MODES[b.mode||"face"],esc(b.concern||"—"),tag(b.status)];}),"No bookings match these filters.",l.map(function(b){return b.id;}),"allBookings");
 }
 function vLog(){
   var q=(st.lq||"").trim().toLowerCase(),all=logs.slice().reverse();
@@ -393,7 +414,7 @@ function vLog(){
   });
   var h='<h1>Activity log</h1><p class="lead">Sign-ins, bookings and decisions, newest first. '+l.length+' of '+all.length+' entries match'+(l.length>200?" (latest 200 shown)":"")+'.</p>';
   h+=fbar("lq","xlq","User, action or detail…",sel("lrf",st.lrf,ROLEOPTS,"Role")+sel("lpf",st.lpf,PROGOPTS,"Student program"),"log");
-  return h+logTbl(l.slice(0,200),"No activity matches these filters.");
+  return h+logTbl(l.slice(0,200),"No activity matches these filters.","activityLog");
 }
 function pwField(id,name,label,ac){return '<label for="'+id+'">'+label+'</label><div class="pwwrap"><input id="'+id+'" name="'+name+'" type="password" autocomplete="'+ac+'"><button type="button" class="eye" data-eye="'+id+'" aria-label="Show password" aria-pressed="false">'+EYE+'</button></div>';}
 function vPw(){
@@ -568,14 +589,13 @@ function mailPanel(){
   if(!m.rows.length){
     h+='<p class="sub">No account emails have been queued yet.</p>';
   }else{
-    h+=tbl(["Account","Recipient","Status","Attempts","Last result","Action"],m.rows.slice(0,100).map(function(d){
+    h+=tbl(["Account","Recipient","Status","Attempts","Last result","Action"],m.rows.map(function(d){
       var when=d.status==="sent"?(d.sent_at?ts(d.sent_at):""):(d.updated_at?ts(d.updated_at):"");
       var detail=d.status==="failed"?(d.last_error||"Delivery failed."):(d.status==="pending"?"Waiting to send.":"Delivered.");
       var canSend=!d.password_set||!!d.must_change_password;
       var action=canSend?'<button type="button" class="btn sm ghost" data-retrymail="'+esc(d.id)+'">'+(d.status==="sent"?"New password":"Retry")+'</button>':"—";
       return ['<b>'+esc(d.username)+'</b><div class="sub">'+esc(d.full_name||"")+'</div>',esc(d.recipient),mailChip(d.status)+(when?'<div class="sub">'+esc(when)+'</div>':""),String(d.attempts||0),'<span class="sub">'+esc(detail)+'</span>',action];
-    }),"");
-    if(m.rows.length>100)h+='<p class="sub">Showing the latest 100 deliveries.</p>';
+    }),"",null,"emailDeliveries");
   }
   h+='<p class="hint">Retrying creates a new temporary password, invalidates the previous one, and emails it again. Accounts are never duplicated. Once a person has changed their password, use <b>Reset password</b> instead.</p>';
   return h+'</div>';
@@ -633,7 +653,7 @@ async function saveAcctEmail(f){
 }
 function pwPanel(){
   var l=st.pwlist;if(!l||!l.length)return "";
-  return '<div class="panel" id="pwlist"><div class="chead"><h2>Temporary passwords</h2><button type="button" class="btn sm ghost" data-clrpw="1">Dismiss</button></div><p class="sub" style="margin-top:0">Save or copy these now. Each password is also emailed to the address shown, is displayed only this once, and must be changed on first sign-in.</p>'+tbl(["ID number","Name","Email","Temporary password"],l.map(function(r){return ['<span class="mono">'+esc(r.id)+'</span>',esc(r.name),esc(r.email||"—"),'<span class="mono">'+esc(r.pw)+'</span>'];}),"")+'<div class="acts"><button class="btn sm" data-copypw="1">Copy all</button></div></div>';
+  return '<div class="panel" id="pwlist"><div class="chead"><h2>Temporary passwords</h2><button type="button" class="btn sm ghost" data-clrpw="1">Dismiss</button></div><p class="sub" style="margin-top:0">Save or copy these now. Each password is also emailed to the address shown, is displayed only this once, and must be changed on first sign-in.</p>'+tbl(["ID number","Name","Email","Temporary password"],l.map(function(r){return ['<span class="mono">'+esc(r.id)+'</span>',esc(r.name),esc(r.email||"—"),'<span class="mono">'+esc(r.pw)+'</span>'];}),"","","temporaryPasswords")+'<div class="acts"><button class="btn sm" data-copypw="1">Copy all</button></div></div>';
 }
 function impPanel(){
   var s=st.imp,h='<div class="panel"><h2>Bulk import accounts</h2><p class="sub" style="margin-top:0">Add many students or faculty at once. Accepted files: CSV, TSV, TXT, JSON or Excel (.xlsx, .xls). The first row must be a header with <span class="mono">id, name, email</span> and optionally <span class="mono">role, program, subject</span>. Use the school format <span class="mono">first-two-letters-of-first-name.lastname@my.cspc.edu.ph</span>, e.g. <span class="mono">ma.santos@my.cspc.edu.ph</span>. Do not include passwords: every new account receives a temporary password by email and must change it on first sign-in.</p><div class="tb">'+sel("impRole",st.impRole,[["student","Student"],["faculty","Faculty"],["admin","Administrator"]],"Role for rows without a role column")+'</div>';
@@ -645,8 +665,7 @@ function impPanel(){
     else{
       var ok=typeof s.valid==="number"?s.valid:(s.rows||[]).filter(function(r){return r.valid;}).length;
       var bad=typeof s.invalid==="number"?s.invalid:(s.rows||[]).length-ok;
-      h+='<p style="margin:12px 0 6px"><b>'+esc(s.name)+'</b>: '+ok+' ready, '+bad+' with problems.</p>'+tbl(["ID number","Name","Email","Role","Program or position","Subject","Check"],(s.rows||[]).slice(0,100).map(function(r){return ['<span class="mono">'+esc(r.id)+'</span>',esc(r.name),esc(r.email),ROLE[r.declaredRole||r.role]||"—",esc(r.unit),r.subj?esc(r.subj):"—",r.valid?"Ready":'<span style="color:var(--bad)">'+esc(r.err||"Check this row.")+'</span>'];}),"No data rows found.");
-      if((s.rows||[]).length>100)h+='<p class="sub">Showing the first 100 rows.</p>';
+      h+='<p style="margin:12px 0 6px"><b>'+esc(s.name)+'</b>: '+ok+' ready, '+bad+' with problems.</p>'+tbl(["ID number","Name","Email","Role","Program or position","Subject","Check"],(s.rows||[]).map(function(r){return ['<span class="mono">'+esc(r.id)+'</span>',esc(r.name),esc(r.email),ROLE[r.declaredRole||r.role]||"—",esc(r.unit),r.subj?esc(r.subj):"—",r.valid?"Ready":'<span style="color:var(--bad)">'+esc(r.err||"Check this row.")+'</span>'];}),"No data rows found.",null,"importPreview");
       h+='<div class="acts">'+(ok?'<button class="btn" id="impgo"'+(s.busy?' disabled':'')+'>'+(s.busy?"Importing…":"Import "+ok+" account"+(ok>1?"s":""))+'</button>':"")+'<button class="btn ghost" id="impclr">Clear</button></div>';
       h+='<p class="hint">The file is checked against SQLite for duplicate IDs, duplicate emails, role mismatches and invalid program values. Only valid rows are imported.</p>';
     }
@@ -696,7 +715,7 @@ function vUsers(){
     var off=!!disabled[u.id],meta=[u.email||"No email on file",u.fid?subjText(fById(u.fid)):""].filter(Boolean).join(" · ");
     var status=off?'<span class="st s-declined">Disabled</span>':(u.setupPending?'<span class="st s-pending">Setup pending</span>':'<span class="st s-confirmed">Active</span>');
     return ['<span class="mono">'+esc(u.id)+'</span>',esc(u.name)+'<div class="sub">'+esc(meta)+'</div>',ROLE[u.role],esc(u.unit),status,'<div class="acts">'+(u.id===st.user.id?"":'<button class="btn sm ghost" data-tog="'+esc(u.id)+'">'+(off?"Enable":"Disable")+'</button>')+'<button class="btn sm ghost" data-semail="'+esc(u.id)+'">'+(u.email?"Edit email":"Add email")+'</button><button class="btn sm ghost" data-rsp="'+esc(u.id)+'">Reset password</button></div>'];
-  }),"No accounts match these filters.");
+  }),"No accounts match these filters.",null,"accounts");
 }
 var VF={done:vDone,pw:vPw,avail:vAvail,book:vBook,mine:vMine,inbox:vInbox,resched:vResched,chat:vChat,notif:vNotif,dash:vDash,all:vAll,users:vUsers,log:vLog};
 
@@ -757,7 +776,7 @@ function route(v){
   render();
 }
 function hashRoute(){var m=/^#\/?([\w-]*)/.exec(location.hash||"");return m?m[1]:"";}
-function resetForm(){st.fac=null;st.date=null;st.time=null;st.mode="face";st.err="";st.form={em:"",cn:CONCERNS[0],nt:"",rs:""};st.ff="pending";st.as="all";st.af="all";st.q="";st.brf="all";st.bpf="all";st.lq="";st.lrf="all";st.lpf="all";st.uq="";st.urf="all";st.upf="all";st.aform=null;st.notice="";st.cb=null;st.rb=null;st.rdate=null;st.rtime=null;st.imp=null;st.impSeq=(st.impSeq||0)+1;}
+function resetForm(){st.fac=null;st.date=null;st.time=null;st.mode="face";st.err="";st.form={em:"",cn:CONCERNS[0],nt:"",rs:""};st.ff="pending";st.as="all";st.af="all";st.q="";st.brf="all";st.bpf="all";st.lq="";st.lrf="all";st.lpf="all";st.uq="";st.urf="all";st.upf="all";st.pages={};st.aform=null;st.notice="";st.cb=null;st.rb=null;st.rdate=null;st.rtime=null;st.imp=null;st.impSeq=(st.impSeq||0)+1;}
 
 function decide(id,s){
   var b=getB(id);if(!b)return;b.status=s;
@@ -902,7 +921,7 @@ document.addEventListener("submit",function(e){
 document.addEventListener("input",function(e){
   var t=e.target,k=t.dataset&&t.dataset.k;if(k){st.form[k]=t.value;if(k==="sj")render();}
   if(t.id==="p1"||t.id==="p2"){var pc=$("pwcheck");if(pc){var q1=$("p1"),q2=$("p2");pc.innerHTML=pwReqHTML(q1?q1.value:"",q2?q2.value:"");}}
-  if(t.dataset&&t.dataset.q){st[t.dataset.q]=t.value;render();var qi=$(t.id);if(qi){qi.focus();try{qi.setSelectionRange(qi.value.length,qi.value.length);}catch(x){}}}
+  if(t.dataset&&t.dataset.q){st[t.dataset.q]=t.value;var pageKey={q:"allBookings",lq:"activityLog",uq:"accounts"}[t.dataset.q];if(pageKey)st.pages[pageKey]=1;render();var qi=$(t.id);if(qi){qi.focus();try{qi.setSelectionRange(qi.value.length,qi.value.length);}catch(x){}}}
 });
 document.addEventListener("change",function(e){
   var t=e.target,d=t.dataset||{};
@@ -911,6 +930,9 @@ document.addEventListener("change",function(e){
   if(t.id==="nr"){var sw=$("subwrap");if(sw)sw.hidden=(t.value!=="faculty");return;}
   if(d.s){
     st[d.s]=t.value;
+    var pageKey={ff:"facultyInbox",as:"allBookings",af:"allBookings",brf:"allBookings",bpf:"allBookings",lrf:"activityLog",lpf:"activityLog",urf:"accounts",upf:"accounts"}[d.s];
+    if(pageKey)st.pages[pageKey]=1;
+    if(d.s==="impRole")st.pages.importPreview=1;
     if(d.s==="impRole"&&st.imp&&st.imp.table)previewImport(st.imp.name,st.imp.table);
     else render();
     return;
@@ -950,6 +972,7 @@ document.addEventListener("click",function(e){
   if(d.recover){st.crashed=false;st.nf="";if(st.user)st.view=VIEWS[st.user.role][0][0];render();return;}
   if(!st.user)return;
   var u=st.user,id,b;
+  if(d.pageSet&&d.pageKey){var page=Number(d.pageSet);if(Number.isInteger(page)&&page>0){st.pages[d.pageKey]=page;render();}return;}
   if(d.out){fetch("/api/logout",{method:"POST"}).catch(function(){});logEv("Signed out","");st.menu=false;st.detail="";st.pwpop=null;st.pwlist=null;st.emailAcct=null;st.emailFocus=false;st.user=null;st.mustChange=false;st.mail=null;clearAttach();resetForm();try{sessionStorage.removeItem(SKEY);sessionStorage.removeItem(TMPKEY);history.replaceState(null,"",location.pathname+location.search);}catch(x){}render();return;}
   if(d.menu){st.menu=(st.menu===d.menu)?"":d.menu;render();return;}
   if(d.nid){openNotif(d.nid);return;}
@@ -979,7 +1002,7 @@ document.addEventListener("click",function(e){
   else if(d.cancel){b=getB(d.cancel);if(u.role==="student"&&b&&b.sid===u.id&&active(b)){cancelB(b.id);toast("Booking cancelled");}}
   else if(d.ok||d.no){b=getB(d.ok||d.no);if(u.role==="faculty"&&b&&b.fid===u.fid&&b.status==="pending"){var yes=!!d.ok;decide(b.id,yes?"confirmed":"declined");toast(yes?"Consultation confirmed":"Request declined");}}
   else if(d.appr||d.keep){b=getB(d.appr||d.keep);if(u.role==="faculty"&&b&&b.fid===u.fid&&b.req){resolveReq(b.id,!!d.appr);}}
-  else if(d.clrf&&u.role==="admin"){var K={bookings:{as:"all",af:"all",brf:"all",bpf:"all",q:""},log:{lq:"",lrf:"all",lpf:"all"},users:{uq:"",urf:"all",upf:"all"}}[d.clrf];if(K){Object.keys(K).forEach(function(k){st[k]=K[k];});render();}}
+  else if(d.clrf&&u.role==="admin"){var K={bookings:{as:"all",af:"all",brf:"all",bpf:"all",q:""},log:{lq:"",lrf:"all",lpf:"all"},users:{uq:"",urf:"all",upf:"all"}}[d.clrf];if(K){Object.keys(K).forEach(function(k){st[k]=K[k];});var pageKey={bookings:"allBookings",log:"activityLog",users:"accounts"}[d.clrf];if(pageKey)st.pages[pageKey]=1;render();}}
   else if(d.tog){id=d.tog;if(u.role==="admin"&&id!==u.id&&uById(id)){disabled[id]=!disabled[id];if(!disabled[id])delete disabled[id];put(DKEY,disabled);logEv(disabled[id]?"Account disabled":"Account enabled",id);render();toast("Account updated");}}
   else if(el.id==="impclr"&&u.role==="admin"){st.imp=null;st.impSeq=(st.impSeq||0)+1;render();}
   else if(el.id==="impgo"&&u.role==="admin"){startImport();}
