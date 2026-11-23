@@ -19,5 +19,8 @@
     "jquery": "^3.7.1",
     "nodemailer": "^10.2.1",
     "sqlite3": "^5.1.7"
+  },
+  "allowScripts": {
+    "sqlite3@5.1.7": true
   }
 }
