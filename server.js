@@ -27,7 +27,10 @@ const sessionStore = new MySQLStore({
   createDatabaseTable: true,
   charset: 'utf8mb4'
 });
-const sessionStoreReady = db.ready;
+const sessionStoreReady = sessionStore.onReady().catch((error) => {
+  console.error(mysqlConfig.diagnostic(error, 'session store'));
+  throw error;
+});
 
 function wrap(handler) {
   return (req, res, next) => Promise.resolve(handler(req, res, next)).catch(next);
@@ -504,6 +507,6 @@ app.use((err, req, res, next) => {
 Promise.all([db.ready, sessionStoreReady]).then(() => {
   app.listen(PORT, () => console.log(`CCS Consultation System running at http://localhost:${PORT}`));
 }).catch((error) => {
-  console.error('Server did not start because the database or session store could not be initialized:', error.message);
+  console.error('Server startup aborted because the database or session store could not be initialized.');
   process.exitCode = 1;
 });

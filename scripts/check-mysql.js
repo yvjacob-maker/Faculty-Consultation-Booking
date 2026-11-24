@@ -18,14 +18,7 @@ async function main() {
     );
     console.log('MySQL connection successful:', rows[0]);
   } catch (error) {
-    if (error.code === 'ER_ACCESS_DENIED_ERROR') {
-      console.error(
-        `MySQL access denied for user "${mysqlConfig.user}" at ${mysqlConfig.host}:${mysqlConfig.port}. ` +
-        'Verify the Hostinger database password and database name in Environment Variables.'
-      );
-    } else {
-      console.error(`MySQL connection failed (${mysqlConfig.safeSummary()}): ${error.message}`);
-    }
+    console.error(mysqlConfig.diagnostic(error, 'connection test'));
     process.exitCode = 1;
   } finally {
     if (connection) await connection.end();

@@ -137,15 +137,7 @@ async function migrate() {
 }
 
 const ready = migrate().catch((error) => {
-  if (error && error.code === 'ER_ACCESS_DENIED_ERROR') {
-    console.error(
-      `Could not connect to MySQL: access denied for user "${user}" at "${host}:${port}". ` +
-      'Set MYSQL_USER and MYSQL_PASSWORD to the Hostinger database credentials, ' +
-      'and set MYSQL_DATABASE to the Hostinger database name.'
-    );
-  } else {
-    console.error(`Could not initialize MySQL tables (${mysqlConfig.safeSummary()}): ${error.message}`);
-  }
+  console.error(mysqlConfig.diagnostic(error, 'application database'));
   throw error;
 });
 
