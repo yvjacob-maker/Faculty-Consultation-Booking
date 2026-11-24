@@ -1,3 +1,4 @@
+const { AsyncLocalStorage } = require('node:async_hooks');
 const mysql = require('mysql2');
 const mysqlConfig = require('./mysql-config');
 const host = mysqlConfig.host;
@@ -17,35 +18,58 @@ const pool = mysql.createPool({
   charset: 'utf8mb4',
   timezone: 'Z'
 });
+const promisePool = pool.promise();
+const transactionConnection = new AsyncLocalStorage();
 
-function runAsync(sql, params = []) {
-  return new Promise((resolve, reject) => {
-    pool.query(sql, params, (error, result) => {
-      if (error) return reject(error);
-      resolve({ id: result.insertId, changes: result.affectedRows });
-    });
-  });
+function activeConnection() {
+  return transactionConnection.getStore() || promisePool;
 }
-function getAsync(sql, params = []) {
-  return new Promise((resolve, reject) => {
-    pool.query(sql, params, (error, rows) => {
-      if (error) return reject(error);
-      resolve(Array.isArray(rows) ? rows[0] : undefined);
-    });
-  });
+
+async function runAsync(sql, params = []) {
+  const [result] = await activeConnection().query(sql, params);
+  return { id: result.insertId, changes: result.affectedRows };
 }
-function allAsync(sql, params = []) {
-  return new Promise((resolve, reject) => {
-    pool.query(sql, params, (error, rows) => {
-      if (error) return reject(error);
-      resolve(Array.isArray(rows) ? rows : []);
-    });
-  });
+
+async function getAsync(sql, params = []) {
+  const [rows] = await activeConnection().query(sql, params);
+  return Array.isArray(rows) ? rows[0] : undefined;
 }
-function execAsync(sql) {
-  return new Promise((resolve, reject) => {
-    pool.query(sql, (error) => error ? reject(error) : resolve());
-  });
+
+async function allAsync(sql, params = []) {
+  const [rows] = await activeConnection().query(sql, params);
+  return Array.isArray(rows) ? rows : [];
+}
+
+async function execAsync(sql) {
+  await activeConnection().query(sql);
+}
+
+async function withTransaction(work) {
+  const connection = await promisePool.getConnection();
+  let transactionStarted = false;
+
+  try {
+    await connection.beginTransaction();
+    transactionStarted = true;
+    const result = await transactionConnection.run(connection, work);
+    await connection.commit();
+    transactionStarted = false;
+    return result;
+  } catch (error) {
+    if (transactionStarted) {
+      try {
+        await connection.rollback();
+      } catch (rollbackError) {
+        throw new AggregateError(
+          [error, rollbackError],
+          'Database transaction failed and rollback also failed.'
+        );
+      }
+    }
+    throw error;
+  } finally {
+    connection.release();
+  }
 }
 
 async function migrate() {
@@ -198,6 +222,7 @@ db.runAsync = runAsync;
 db.getAsync = getAsync;
 db.allAsync = allAsync;
 db.execAsync = execAsync;
+db.withTransaction = withTransaction;
 db.pool = pool;
 db.close = async () => {
   await pool.end();

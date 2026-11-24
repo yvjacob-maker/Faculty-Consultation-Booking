@@ -313,19 +313,7 @@ function validateImportRows(rawRows, selectedRole, existing) {
 let transactionQueue = Promise.resolve();
 async function withTransaction(work) {
   const execute = async () => {
-    await run('BEGIN IMMEDIATE');
-    try {
-      const result = await work();
-      await run('COMMIT');
-      return result;
-    } catch (error) {
-      try {
-        await run('ROLLBACK');
-      } catch (_) {
-        // Ignore rollback failures; the original error is more useful.
-      }
-      throw error;
-    }
+    return database.withTransaction(work);
   };
   const next = transactionQueue.then(execute, execute);
   transactionQueue = next.then(() => undefined, () => undefined);
