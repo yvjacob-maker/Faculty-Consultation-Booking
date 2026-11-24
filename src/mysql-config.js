@@ -31,7 +31,7 @@ const config = urlConfig || {
     process.env.DB_HOST,
     process.env.MYSQL_ADDON_HOST,
     '127.0.0.1'
-  ),
+  ).trim(),
   port: Number(first(
     process.env.MYSQL_PORT,
     process.env.DATABASE_PORT,
@@ -48,7 +48,7 @@ const config = urlConfig || {
     process.env.DB_USERNAME,
     process.env.MYSQL_ADDON_USER,
     'root'
-  ),
+  ).trim(),
   password: first(
     process.env.MYSQL_PASSWORD,
     process.env.DATABASE_PASSWORD,
@@ -65,7 +65,7 @@ const config = urlConfig || {
     process.env.DB_DATABASE,
     process.env.MYSQL_ADDON_DB,
     'faculty_consultation'
-  )
+  ).trim()
 };
 
 module.exports = {
