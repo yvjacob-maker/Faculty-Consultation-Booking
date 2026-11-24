@@ -40,12 +40,20 @@ app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 app.use(express.urlencoded({ extended: true, limit: '6mb' }));
 app.use(express.json({ limit: '6mb' }));
+
+// Trust Hostinger's reverse proxy for HTTPS headers
+app.set('trust proxy', 1);
+
 app.use(session({
   secret: SESSION_SECRET,
   store: sessionStore,
   resave: false,
   saveUninitialized: false,
-  cookie: { httpOnly: true, sameSite: 'lax' }
+  cookie: {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production'
+  }
 }));
 app.use('/css', express.static(path.join(__dirname, 'css')));
 app.use('/js', express.static(path.join(__dirname, 'js')));
