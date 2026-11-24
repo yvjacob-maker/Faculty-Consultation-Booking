@@ -1,7 +1,7 @@
 require('dotenv').config({ quiet: true });
 const express = require('express');
 const session = require('express-session');
-const SQLiteStore = require('connect-sqlite3')(session);
+const MySQLStore = require('express-mysql-session')(session);
 const bcrypt = require('bcryptjs');
 const path = require('path');
 const fs = require('fs');
@@ -17,13 +17,16 @@ if (SESSION_SECRET.length < 32 || /change-this|replace-with/i.test(SESSION_SECRE
   console.error('SESSION_SECRET is missing or too weak. Set a long random value in .env before starting.');
   process.exit(1);
 }
-const sessionStore = new SQLiteStore({
-  db: 'sessions.sqlite',
-  dir: path.dirname(db.dbPath),
-  createDirIfNotExists: true,
-  concurrentDb: true
+const sessionStore = new MySQLStore({
+  host: process.env.MYSQL_HOST || '127.0.0.1',
+  port: Number(process.env.MYSQL_PORT || 3306),
+  user: process.env.MYSQL_USER || 'root',
+  password: process.env.MYSQL_PASSWORD || '',
+  database: process.env.MYSQL_DATABASE || 'faculty_consultation',
+  createDatabaseTable: true,
+  charset: 'utf8mb4'
 });
-const sessionStoreReady = new Promise(resolve => sessionStore.client.once('connect', resolve));
+const sessionStoreReady = db.ready;
 
 function wrap(handler) {
   return (req, res, next) => Promise.resolve(handler(req, res, next)).catch(next);
@@ -89,10 +92,10 @@ function requireRole(...roles) {
 
 
 app.get('/', (req, res) => res.render('index', { title: 'CCS Faculty Consultation Booking' }));
-app.get('/api/health', (req, res) => res.json({ status: 'ok', database: 'sqlite' }));
+app.get('/api/health', (req, res) => res.json({ status: 'ok', database: 'mysql' }));
 
 // The existing rich client keeps its current data model. This compatibility API
-// stores that model in SQLite so records are shared across browsers/devices.
+// stores that model in MySQL so records are shared across browsers/devices.
 // Passwords live only in the accounts table; strip legacy client password fields
 // before data is returned or persisted through this compatibility endpoint.
 function withoutClientPassword(user) {
@@ -126,7 +129,7 @@ app.put('/api/app-state', (req, res) => {
   const users = state['sis-users-v7'];
   const bookings = state['sis-consult-v7'];
   db.serialize(() => {
-    const stmt = db.prepare('INSERT INTO app_state (state_key, state_json, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP) ON CONFLICT(state_key) DO UPDATE SET state_json=excluded.state_json, updated_at=CURRENT_TIMESTAMP');
+    const stmt = db.prepare('INSERT INTO app_state (state_key, state_json, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP) ON DUPLICATE KEY UPDATE state_json=VALUES(state_json), updated_at=CURRENT_TIMESTAMP');
     entries.forEach(([key, value]) => stmt.run(key, JSON.stringify(value)));
     stmt.finalize(err => {
       if (err) return res.status(500).json({ error: 'Could not save application data.' });
@@ -146,18 +149,18 @@ app.put('/api/app-state', (req, res) => {
       db.get('SELECT COUNT(*) AS count FROM accounts', [], (countError, row) => {
         if (countError) return res.status(500).json({ error: 'Could not check account data.' });
         if (!row || row.count > 0 || !Array.isArray(users)) {
-          return res.json({ message: 'Application data saved to SQLite.', savedKeys: entries.length });
+          return res.json({ message: 'Application data saved to MySQL.', savedKeys: entries.length });
         }
 
         const bootstrapUsers = users.filter(u => u && u.id && u.name && u.pw && ['student', 'faculty', 'admin'].includes(u.role));
         if (!bootstrapUsers.length) {
-          return res.json({ message: 'Application data saved to SQLite.', savedKeys: entries.length });
+          return res.json({ message: 'Application data saved to MySQL.', savedKeys: entries.length });
         }
 
         Promise.all(bootstrapUsers.map(u =>
           bcrypt.hash(String(u.pw), 10).then(hash => ({ u, hash }))
         )).then(hashedUsers => {
-          const up = db.prepare(`INSERT INTO accounts (full_name, username, password_hash, role, program) VALUES (?, ?, ?, ?, ?) ON CONFLICT(username) DO NOTHING`);
+          const up = db.prepare(`INSERT IGNORE INTO accounts (full_name, username, password_hash, role, program) VALUES (?, ?, ?, ?, ?)`);
           hashedUsers.forEach(({ u, hash }) => {
             up.run(String(u.name), String(u.id), hash, u.role === 'admin' ? 'administrator' : u.role, String(u.unit || ''));
           });
@@ -166,7 +169,7 @@ app.put('/api/app-state', (req, res) => {
               console.error('Could not bootstrap account records:', finalizeError.message);
               return res.status(500).json({ error: 'Could not initialize account records.' });
             }
-            res.json({ message: 'Application data saved to SQLite.', savedKeys: entries.length });
+            res.json({ message: 'Application data saved to MySQL.', savedKeys: entries.length });
           });
         }).catch(error => {
           console.error('Could not bootstrap account records:', error.message);
@@ -220,7 +223,7 @@ app.post('/api/logout', (req, res) => {
   });
 });
 
-// API endpoints provide persistent SQLite storage for the system.
+// API endpoints provide persistent MySQL storage for the system.
 app.get('/api/bookings', requireLogin, requirePasswordCurrent, (req, res) => {
   db.all('SELECT * FROM bookings ORDER BY created_at DESC', [], (err, rows) => {
     if (err) return res.status(500).json({ error: 'Could not load bookings.' });

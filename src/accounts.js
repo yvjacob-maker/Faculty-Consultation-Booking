@@ -57,7 +57,7 @@ function normalizeHeader(value) {
   return clean(value).toLowerCase().replace(/[^a-z0-9]/g, '');
 }
 
-// SQLite CURRENT_TIMESTAMP values are UTC without a zone marker. Browsers
+// MySQL CURRENT_TIMESTAMP values are UTC without a zone marker. Browsers
 // otherwise parse them as local time, so expose them as explicit UTC ISO text.
 function dbTimestamp(value) {
   if (!value) return null;
@@ -405,7 +405,7 @@ async function importAccounts({ role, table, actor }) {
   const rawRows = mapImportTable(table);
 
   // Hash credentials before taking the write lock. bcrypt is CPU-bound, and
-  // hashing inside the transaction would keep SQLite locked for a long time.
+  // hashing inside the transaction would keep the database locked for a long time.
   const previewExisting = await loadExistingAccounts();
   const preRows = validateImportRows(rawRows, selectedRole, previewExisting);
   const credentialsByRow = new Map();
