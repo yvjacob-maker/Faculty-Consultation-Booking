@@ -23,7 +23,7 @@ const urlConfig = parseDatabaseUrl(
   first(process.env.MYSQL_URL, process.env.DATABASE_URL, process.env.JAWSDB_URL)
 );
 
-const config = urlConfig || {
+const explicitConfig = {
   host: first(
     process.env.MYSQL_HOST,
     process.env.MYSQL_HOSTNAME,
@@ -67,6 +67,23 @@ const config = urlConfig || {
     'faculty_consultation'
   ).trim()
 };
+
+const hasExplicitHostingerConfig = first(
+  process.env.MYSQL_HOST,
+  process.env.MYSQL_HOSTNAME,
+  process.env.DATABASE_HOST,
+  process.env.DB_HOST,
+  process.env.MYSQL_USER,
+  process.env.MYSQL_USERNAME,
+  process.env.DATABASE_USER,
+  process.env.DB_USER,
+  process.env.MYSQL_DATABASE,
+  process.env.MYSQL_DB,
+  process.env.DATABASE_NAME,
+  process.env.DB_NAME
+);
+
+const config = hasExplicitHostingerConfig ? explicitConfig : (urlConfig || explicitConfig);
 
 module.exports = {
   ...config,
