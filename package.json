@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
-    "migrate:mysql": "node scripts/migrate-sqlite-to-mysql.js"
+    "migrate:mysql": "node scripts/migrate-sqlite-to-mysql.js",
+    "check:mysql": "node scripts/check-mysql.js"
   },
   "engines": {
     "node": ">=18"

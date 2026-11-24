@@ -26,12 +26,15 @@ const urlConfig = parseDatabaseUrl(
 const config = urlConfig || {
   host: first(
     process.env.MYSQL_HOST,
+    process.env.MYSQL_HOSTNAME,
+    process.env.DATABASE_HOST,
     process.env.DB_HOST,
     process.env.MYSQL_ADDON_HOST,
     '127.0.0.1'
   ),
   port: Number(first(
     process.env.MYSQL_PORT,
+    process.env.DATABASE_PORT,
     process.env.DB_PORT,
     process.env.MYSQL_ADDON_PORT,
     3306
@@ -39,6 +42,8 @@ const config = urlConfig || {
   user: first(
     process.env.MYSQL_USER,
     process.env.MYSQL_USERNAME,
+    process.env.DATABASE_USER,
+    process.env.DATABASE_USERNAME,
     process.env.DB_USER,
     process.env.DB_USERNAME,
     process.env.MYSQL_ADDON_USER,
@@ -46,6 +51,7 @@ const config = urlConfig || {
   ),
   password: first(
     process.env.MYSQL_PASSWORD,
+    process.env.DATABASE_PASSWORD,
     process.env.DB_PASSWORD,
     process.env.MYSQL_ADDON_PASSWORD,
     ''
@@ -53,6 +59,8 @@ const config = urlConfig || {
   database: first(
     process.env.MYSQL_DATABASE,
     process.env.MYSQL_DB,
+    process.env.DATABASE_NAME,
+    process.env.DATABASE_DATABASE,
     process.env.DB_NAME,
     process.env.DB_DATABASE,
     process.env.MYSQL_ADDON_DB,
