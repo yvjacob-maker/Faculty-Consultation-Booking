@@ -1,28 +1,10 @@
 const mysql = require('mysql2');
 
-const host = process.env.MYSQL_HOST || '127.0.0.1';
-const port = Number(process.env.MYSQL_PORT || 3306);
-const user = process.env.MYSQL_USER || 'root';
-const password = process.env.MYSQL_PASSWORD || '';
-const database = process.env.MYSQL_DATABASE || 'faculty_consultation';
-
-const bootstrap = mysql.createPool({
-  host,
-  port,
-  user,
-  password,
-  waitForConnections: true,
-  connectionLimit: 10,
-  charset: 'utf8mb4'
-});
-
-const bootstrapPromise = new Promise((resolve, reject) => {
-  bootstrap.query(
-    'CREATE DATABASE IF NOT EXISTS ?? CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci',
-    [database],
-    (error) => error ? reject(error) : resolve()
-  );
-});
+const host = process.env.MYSQL_HOST || process.env.DB_HOST || '127.0.0.1';
+const port = Number(process.env.MYSQL_PORT || process.env.DB_PORT || 3306);
+const user = process.env.MYSQL_USER || process.env.DB_USER || 'root';
+const password = process.env.MYSQL_PASSWORD || process.env.DB_PASSWORD || '';
+const database = process.env.MYSQL_DATABASE || process.env.DB_NAME || 'faculty_consultation';
 
 const pool = mysql.createPool({
   host,
@@ -67,7 +49,6 @@ function execAsync(sql) {
 }
 
 async function migrate() {
-  await bootstrapPromise;
   await execAsync(`
     CREATE TABLE IF NOT EXISTS app_state (
       state_key VARCHAR(191) PRIMARY KEY,
@@ -164,7 +145,10 @@ function run(sql, params, callback) {
   if (typeof params === 'function') { callback = params; params = []; }
   pool.query(sql, params || [], (error, result) => {
     if (error) return callback(error);
-    callback(null, result);
+    callback.call({
+      lastID: result.insertId,
+      changes: result.affectedRows
+    }, null, result);
   });
 }
 function get(sql, params, callback) {
@@ -210,10 +194,8 @@ db.getAsync = getAsync;
 db.allAsync = allAsync;
 db.execAsync = execAsync;
 db.pool = pool;
-db.bootstrapPool = bootstrap;
 db.close = async () => {
   await pool.end();
-  await bootstrap.end();
 };
 
 module.exports = db;
