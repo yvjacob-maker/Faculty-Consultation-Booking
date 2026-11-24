@@ -143,8 +143,13 @@ const ready = migrate().catch((error) => {
 
 function run(sql, params, callback) {
   if (typeof params === 'function') { callback = params; params = []; }
+  if (typeof callback !== 'function') callback = null;
   pool.query(sql, params || [], (error, result) => {
-    if (error) return callback(error);
+    if (error) {
+      if (callback) callback.call(null, error);
+      return;
+    }
+    if (!callback) return;
     callback.call({
       lastID: result.insertId,
       changes: result.affectedRows
