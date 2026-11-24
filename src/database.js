@@ -1,10 +1,10 @@
 const mysql = require('mysql2');
-
-const host = process.env.MYSQL_HOST || process.env.DB_HOST || '127.0.0.1';
-const port = Number(process.env.MYSQL_PORT || process.env.DB_PORT || 3306);
-const user = process.env.MYSQL_USER || process.env.DB_USER || 'root';
-const password = process.env.MYSQL_PASSWORD || process.env.DB_PASSWORD || '';
-const database = process.env.MYSQL_DATABASE || process.env.DB_NAME || 'faculty_consultation';
+const mysqlConfig = require('./mysql-config');
+const host = mysqlConfig.host;
+const port = mysqlConfig.port;
+const user = mysqlConfig.user;
+const password = mysqlConfig.password;
+const database = mysqlConfig.database;
 
 const pool = mysql.createPool({
   host,
@@ -137,7 +137,15 @@ async function migrate() {
 }
 
 const ready = migrate().catch((error) => {
-  console.error('Could not initialize MySQL tables:', error.message);
+  if (error && error.code === 'ER_ACCESS_DENIED_ERROR') {
+    console.error(
+      `Could not connect to MySQL: access denied for user "${user}" at "${host}:${port}". ` +
+      'Set MYSQL_USER and MYSQL_PASSWORD to the Hostinger database credentials, ' +
+      'and set MYSQL_DATABASE to the Hostinger database name.'
+    );
+  } else {
+    console.error(`Could not initialize MySQL tables (${mysqlConfig.safeSummary()}): ${error.message}`);
+  }
   throw error;
 });
 

@@ -3,6 +3,7 @@ const path = require('path');
 const sqlite3 = require('sqlite3').verbose();
 const mysql = require('mysql2/promise');
 const database = require('../src/database');
+const mysqlConfig = require('../src/mysql-config');
 
 const sqlitePath = process.env.SQLITE_PATH
   ? path.resolve(process.env.SQLITE_PATH)
@@ -41,11 +42,11 @@ async function main() {
   await database.ready;
   const sqlite = new sqlite3.Database(sqlitePath, sqlite3.OPEN_READONLY);
   const connection = await mysql.createConnection({
-    host: process.env.MYSQL_HOST || process.env.DB_HOST || '127.0.0.1',
-    port: Number(process.env.MYSQL_PORT || process.env.DB_PORT || 3306),
-    user: process.env.MYSQL_USER || process.env.DB_USER || 'root',
-    password: process.env.MYSQL_PASSWORD || process.env.DB_PASSWORD || '',
-    database: process.env.MYSQL_DATABASE || process.env.DB_NAME || 'faculty_consultation'
+    host: mysqlConfig.host,
+    port: mysqlConfig.port,
+    user: mysqlConfig.user,
+    password: mysqlConfig.password,
+    database: mysqlConfig.database
   });
 
   try {
