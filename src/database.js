@@ -14,9 +14,10 @@ const pool = mysql.createPool({
   password,
   database,
   waitForConnections: true,
-  connectionLimit: 10,
+  connectionLimit: 5,
   charset: 'utf8mb4',
-  timezone: 'Z'
+  timezone: 'Z',
+  ssl: process.env.MYSQL_SSL === 'true' ? { rejectUnauthorized: false } : undefined
 });
 const promisePool = pool.promise();
 const transactionConnection = new AsyncLocalStorage();
