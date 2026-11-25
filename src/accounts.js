@@ -379,8 +379,11 @@ async function previewImport({ role, table }) {
   const existing = await loadExistingAccounts();
   const rows = validateImportRows(rawRows, selectedRole, existing);
   const invalid = rows.filter((row) => !row.valid).length;
+  const header = Array.isArray(table[0]) ? table[0] : [];
+  const hasRoleColumn = header.some((value) => HEADER_ALIASES.role.includes(normalizeHeader(value)));
   return {
     role: clientRole(selectedRole),
+    hasRoleColumn,
     total: rows.length,
     valid: rows.length - invalid,
     invalid,

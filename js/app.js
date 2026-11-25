@@ -464,7 +464,7 @@ function previewImport(name,tb){
   reqJSON("/api/admin/accounts/import/preview",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({role:st.impRole,table:tb})})
     .then(function(d){
       if(seq!==st.impSeq)return;
-      st.imp={name:name,table:tb,loading:false,rows:d.rows||[],valid:d.valid||0,invalid:d.invalid||0,err:""};
+      st.imp={name:name,table:tb,loading:false,rows:d.rows||[],hasRoleColumn:d.hasRoleColumn===true,valid:d.valid||0,invalid:d.invalid||0,err:""};
       render();
     })
     .catch(function(err){
@@ -656,7 +656,7 @@ function pwPanel(){
   return '<div class="panel" id="pwlist"><div class="chead"><h2>Temporary passwords</h2><button type="button" class="btn sm ghost" data-clrpw="1">Dismiss</button></div><p class="sub" style="margin-top:0">Save or copy these now. Each password is also emailed to the address shown, is displayed only this once, and must be changed on first sign-in.</p>'+tbl(["ID number","Name","Email","Temporary password"],l.map(function(r){return ['<span class="mono">'+esc(r.id)+'</span>',esc(r.name),esc(r.email||"—"),'<span class="mono">'+esc(r.pw)+'</span>'];}),"","","temporaryPasswords")+'<div class="acts"><button class="btn sm" data-copypw="1">Copy all</button></div></div>';
 }
 function impPanel(){
-  var s=st.imp,h='<div class="panel"><h2>Bulk import accounts</h2><p class="sub" style="margin-top:0">Add many students or faculty at once. Accepted files: CSV, TSV, TXT, JSON or Excel (.xlsx, .xls). The first row must be a header with <span class="mono">id, name, email</span> and optionally <span class="mono">role, program, subject</span>. Use the school format <span class="mono">first-two-letters-of-first-name.lastname@my.cspc.edu.ph</span>, e.g. <span class="mono">ma.santos@my.cspc.edu.ph</span>. Do not include passwords: every new account receives a temporary password by email and must change it on first sign-in.</p><div class="tb">'+sel("impRole",st.impRole,[["student","Student"],["faculty","Faculty"],["admin","Administrator"]],"Role for rows without a role column")+'</div>';
+  var s=st.imp,h='<div class="panel"><h2>Bulk import accounts</h2><p class="sub" style="margin-top:0">Add many students or faculty at once. Accepted files: CSV, TSV, TXT, JSON or Excel (.xlsx, .xls). The first row must be a header with <span class="mono">id, name, email</span> and optionally <span class="mono">role, program, subject</span>. Use the school format <span class="mono">first-two-letters-of-first-name.lastname@my.cspc.edu.ph</span>, e.g. <span class="mono">ma.santos@my.cspc.edu.ph</span>. Do not include passwords: every new account receives a temporary password by email and must change it on first sign-in.</p><div class="tb">'+sel("impRole",st.impRole,[["student","Student"],["faculty","Faculty"],["admin","Administrator"]],"")+'</div>';
   h+='<div class="drop" id="dz"><p><b>Drop a file here</b></p><p class="sub">or</p><label class="btn sm ghost" for="fi" style="margin:0;display:inline-block;cursor:pointer">Choose a file</label><input type="file" id="fi" hidden accept=".csv,.tsv,.txt,.json,.xlsx,.xls"></div>';
   h+='<details><summary>Example CSV</summary><pre class="mono">id,name,email,role,program,subject\n2024-0201,Ana Reyes,an.reyes@my.cspc.edu.ph,student,BS Information Technology,\n2024-0202,Mark Dela Cruz,ma.delacruz@my.cspc.edu.ph,student,BS Computer Science,\nF-1011,Prof. Lea Cruz,le.cruz@my.cspc.edu.ph,faculty,IT Instructor,Operating Systems; Computer Architecture</pre></details>';
   if(s){
@@ -665,7 +665,10 @@ function impPanel(){
     else{
       var ok=typeof s.valid==="number"?s.valid:(s.rows||[]).filter(function(r){return r.valid;}).length;
       var bad=typeof s.invalid==="number"?s.invalid:(s.rows||[]).length-ok;
-      h+='<p style="margin:12px 0 6px"><b>'+esc(s.name)+'</b>: '+ok+' ready, '+bad+' with problems.</p>'+tbl(["ID number","Name","Email","Role","Program or position","Subject","Check"],(s.rows||[]).map(function(r){return ['<span class="mono">'+esc(r.id)+'</span>',esc(r.name),esc(r.email),ROLE[r.declaredRole||r.role]||"—",esc(r.unit),r.subj?esc(r.subj):"—",r.valid?"Ready":'<span style="color:var(--bad)">'+esc(r.err||"Check this row.")+'</span>'];}),"No data rows found.",null,"importPreview");
+      var importHeaders=["ID number","Name","Email"];
+      if(s.hasRoleColumn)importHeaders.push("Role");
+      importHeaders.push("Program or position","Subject","Check");
+      h+='<p style="margin:12px 0 6px"><b>'+esc(s.name)+'</b>: '+ok+' ready, '+bad+' with problems.</p>'+tbl(importHeaders,(s.rows||[]).map(function(r){var cells=['<span class="mono">'+esc(r.id)+'</span>',esc(r.name),esc(r.email)];if(s.hasRoleColumn)cells.push(ROLE[r.declaredRole||r.role]||"—");cells.push(esc(r.unit),r.subj?esc(r.subj):"—",r.valid?"Ready":'<span style="color:var(--bad)">'+esc(r.err||"Check this row.")+'</span>');return cells;}),"No data rows found.",null,"importPreview");
       h+='<div class="acts">'+(ok?'<button class="btn" id="impgo"'+(s.busy?' disabled':'')+'>'+(s.busy?"Importing…":"Import "+ok+" account"+(ok>1?"s":""))+'</button>':"")+'<button class="btn ghost" id="impclr">Clear</button></div>';
       h+='<p class="hint">The file is checked against SQLite for duplicate IDs, duplicate emails, role mismatches and invalid program values. Only valid rows are imported.</p>';
     }
