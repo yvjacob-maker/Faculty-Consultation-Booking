@@ -116,7 +116,7 @@ function themeBtn(){var d=theme()==="dark";return '<button type="button" class="
 function themeSwitch(){var d=theme()==="dark";return '<button type="button" class="tsw" role="switch" aria-checked="'+d+'" data-theme-toggle="1" aria-label="Dark mode">'+SUN+'<span class="trk"><span class="knob"></span></span>'+MOON+'</button>';}
 function clocks(){var d=new Date(),t=d.toLocaleTimeString(undefined,{hour:"numeric",minute:"2-digit",second:"2-digit"}),dt=d.toLocaleDateString(undefined,{weekday:"long",month:"long",day:"numeric",year:"numeric"});document.querySelectorAll("[data-ct]").forEach(function(n){n.textContent=t;});document.querySelectorAll("[data-cd]").forEach(function(n){n.textContent=dt;});}
 
-var st={showLogin:false,brf:"all",bpf:"all",lq:"",lrf:"all",lpf:"all",uq:"",urf:"all",upf:"all",pages:{},aform:null,pwlist:null,pwpop:null,pwfocus:false,emailAcct:null,emailFocus:false,lrole:"student",lpw:"",lid:"",lerr:"",user:null,view:"",nf:"",crashed:false,mustChange:false,fac:null,date:null,time:null,mode:"face",form:{em:"",cn:CONCERNS[0],nt:"",rs:""},err:"",notice:"",ff:"pending",as:"all",af:"all",q:"",cb:null,rb:null,rdate:null,rtime:null,imp:null,impRole:"student",impSeq:0,mail:null,mailBusy:false,aerr:"",perr:"",pok:""};
+var st={showLogin:false,brf:"all",bpf:"all",lq:"",lrf:"all",lpf:"all",uq:"",urf:"all",upf:"all",pages:{},aform:null,pwlist:null,pwpop:null,pwfocus:false,emailAcct:null,emailFocus:false,confirm:null,confirmFocus:false,lrole:"student",lpw:"",lid:"",lerr:"",user:null,view:"",nf:"",crashed:false,mustChange:false,fac:null,date:null,time:null,mode:"face",form:{em:"",cn:CONCERNS[0],nt:"",rs:""},err:"",notice:"",ff:"pending",as:"all",af:"all",q:"",cb:null,rb:null,rdate:null,rtime:null,imp:null,impRole:"student",impSeq:0,mail:null,mailBusy:false,aerr:"",perr:"",pok:""};
 function logEv(a,d,who){who=who||st.user;logs.push({t:new Date().toISOString(),u:who?who.name:"Unknown",ro:who?who.role:"none",a:a,d:d||"",uid:(who&&who.id)?who.id:""});saveAll();}
 function notify(to,text,kind,bid){if(!to)return;notifs.push({id:rid("n"),to:to,t:new Date().toISOString(),kind:kind,text:text,bid:bid||"",read:false});put(NKEY,notifs.slice(-500));}
 function getB(id){return bookings.filter(function(b){return b.id===id;})[0];}
@@ -748,7 +748,7 @@ function render(){
   var a=$("app");
   try{
     if(!st.user){st.pwpop=null;st.pwlist=null;st.pwfocus=false;st.emailAcct=null;st.emailFocus=false;a.innerHTML=st.showLogin?loginHTML():landingHTML();var rs=document.querySelector(".roles");if(rs){var ni=rs.getAttribute("data-i");if(rs.style.getPropertyValue("--i")!==ni){void rs.offsetWidth;rs.style.setProperty("--i",ni);}}st.rprev=null;st.inkPrev=null;document.body.style.overflow="";document.body.classList.remove("nav-hidden");clocks();return;}
-    if(st.mustChange){st.pwpop=null;st.pwlist=null;st.pwfocus=false;st.emailAcct=null;st.emailFocus=false;a.innerHTML=vForcePw();st.rprev=null;st.inkPrev=null;document.body.style.overflow="";document.body.classList.remove("nav-hidden");clocks();return;}
+    if(st.mustChange){st.pwpop=null;st.pwlist=null;st.pwfocus=false;st.emailAcct=null;st.emailFocus=false;a.innerHTML=vForcePw()+ (st.confirm?confirmHTML(): "");st.rprev=null;st.inkPrev=null;document.body.style.overflow=st.confirm?"hidden":"";document.body.classList.remove("nav-hidden");if(st.confirmFocus){var cy=document.querySelector("[data-confirmyes]");if(cy)cy.focus();st.confirmFocus=false;}clocks();return;}
     var u=st.user,body,pw=(st.view==="pw"&&!st.nf);
     if(st.nf)body=nfHTML();
     else if(!canView(st.view))body='<div class="panel nf"><div class="code404">403</div><h1>Access denied</h1><p class="lead">Your account type does not have permission to open this page.</p><div class="acts"><button class="btn" data-v="'+VIEWS[u.role][0][0]+'">Go to my dashboard</button></div></div>';
@@ -760,8 +760,9 @@ function render(){
     var modal=st.detail?detailHTML():"";
     var pwmodal=st.pwpop?pwPopupHTML():"";
     var emailmodal=st.emailAcct?emailPopupHTML():"";
-    a.innerHTML='<header class="nb'+(st.navIn?" slide":"")+'"><div class="nbin"><img class="ccslogo lm" src="'+IMG_CCS+'" alt="College of Computer Studies, Camarines Sur Polytechnic Colleges"><img class="ccslogo dm" src="'+IMG_CCSD+'" alt="" aria-hidden="true"><nav class="mainnav" aria-label="Main"><span class="navhl" aria-hidden="true"></span><span class="navink" aria-hidden="true"></span>'+links+'</nav><div class="nbr"><div class="clockbox"><span class="ct" data-ct></span><span class="cd" data-cd></span></div>'+themeSwitch()+icons+'<div class="usermenu"><button class="avatar" data-menu="user" aria-haspopup="true" aria-expanded="'+(st.menu==="user")+'" aria-label="Account menu"><span class="av">'+esc(initials(u.name))+'</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>'+menu+'</div></div></div></header><div class="wrap2"><main class="page'+(st.enter&&!pw?" enter":"")+'">'+body+'</main></div>'+modal+pwmodal+emailmodal;
-    st.enter=false;st.navIn=false;document.body.style.overflow=(st.detail||st.pwpop||st.emailAcct)?"hidden":"";if(st.dfocus){var cb=document.querySelector("[data-closedt]");if(cb)cb.focus();st.dfocus=false;}if(st.pwfocus){var pb=document.querySelector("[data-closepw]");if(pb)pb.focus();st.pwfocus=false;}if(st.emailFocus){var eb=$("eemail");if(eb){eb.focus();try{eb.setSelectionRange(eb.value.length,eb.value.length);}catch(x){}}st.emailFocus=false;}st.dnew=false;
+    var confirmmodal=st.confirm?confirmHTML(): "";
+    a.innerHTML='<header class="nb'+(st.navIn?" slide":"")+'"><div class="nbin"><img class="ccslogo lm" src="'+IMG_CCS+'" alt="College of Computer Studies, Camarines Sur Polytechnic Colleges"><img class="ccslogo dm" src="'+IMG_CCSD+'" alt="" aria-hidden="true"><nav class="mainnav" aria-label="Main"><span class="navhl" aria-hidden="true"></span><span class="navink" aria-hidden="true"></span>'+links+'</nav><div class="nbr"><div class="clockbox"><span class="ct" data-ct></span><span class="cd" data-cd></span></div>'+themeSwitch()+icons+'<div class="usermenu"><button class="avatar" data-menu="user" aria-haspopup="true" aria-expanded="'+(st.menu==="user")+'" aria-label="Account menu"><span class="av">'+esc(initials(u.name))+'</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>'+menu+'</div></div></div></header><div class="wrap2"><main class="page'+(st.enter&&!pw?" enter":"")+'">'+body+'</main></div>'+modal+pwmodal+emailmodal+confirmmodal;
+    st.enter=false;st.navIn=false;document.body.style.overflow=(st.detail||st.pwpop||st.emailAcct||st.confirm)?"hidden":"";if(st.dfocus){var cb=document.querySelector("[data-closedt]");if(cb)cb.focus();st.dfocus=false;}if(st.pwfocus){var pb=document.querySelector("[data-closepw]");if(pb)pb.focus();st.pwfocus=false;}if(st.emailFocus){var eb=$("eemail");if(eb){eb.focus();try{eb.setSelectionRange(eb.value.length,eb.value.length);}catch(x){}}st.emailFocus=false;}if(st.confirmFocus){var yb=document.querySelector("[data-confirmyes]");if(yb)yb.focus();st.confirmFocus=false;}st.dnew=false;
     var ink=document.querySelector(".navink"),act=document.querySelector(".mainnav [aria-current=page]");
     if(ink&&act){var L=act.offsetLeft,W=act.offsetWidth;ink.style.left=L+"px";ink.style.width=W+"px";if(st.inkPrev&&(st.inkPrev.l!==L||st.inkPrev.w!==W)&&ink.animate)ink.animate([{left:st.inkPrev.l+"px",width:st.inkPrev.w+"px"},{left:L+"px",width:W+"px"}],{duration:380,easing:"cubic-bezier(.4,0,.2,1)"});st.inkPrev={l:L,w:W};}else{if(ink)ink.style.display="none";st.inkPrev=null;}
     if(st.view==="chat"&&!st.nf){var m=$("msgs");if(m)m.scrollTop=m.scrollHeight;}
@@ -793,6 +794,24 @@ function completeB(id){
   var b=getB(id);if(!b||b.status!=="confirmed")return;b.status="completed";b.doneAt=new Date().toISOString();delete b.req;logEv("Booking completed",b.ref);
   notify(b.sid,"Your consultation with "+fById(b.fid).name+" on "+nice(b.date)+" at "+t12(b.time)+" was marked as completed.","completed",b.id);
   saveAll();render();
+}
+function openConfirm(title,message,label,action,danger){
+  st.confirm={title:title,message:message,label:label,action:action,danger:!!danger};
+  st.confirmFocus=true;
+  render();
+}
+function confirmHTML(){
+  if(!st.confirm)return "";
+  var c=st.confirm;
+  return '<div class="ov" data-confirmov="1"><div class="dlg confirmdlg" role="dialog" aria-modal="true" aria-labelledby="confirmtitle" aria-describedby="confirmmessage"><div class="dhd"><h2 id="confirmtitle">'+esc(c.title)+'</h2><button type="button" class="x" data-confirmcancel="1" aria-label="Cancel">×</button></div><p id="confirmmessage" class="confirmmessage">'+esc(c.message)+'</p><div class="dact"><button type="button" class="btn ghost" data-confirmcancel="1">Cancel</button><button type="button" class="btn'+(c.danger?" danger":"")+'" data-confirmyes="1">'+esc(c.label)+'</button></div></div></div>';
+}
+function signOut(){
+  fetch("/api/logout",{method:"POST"}).catch(function(){});
+  logEv("Signed out","");
+  st.menu=false;st.detail="";st.pwpop=null;st.pwlist=null;st.emailAcct=null;st.emailFocus=false;st.confirm=null;st.confirmFocus=false;st.user=null;st.mustChange=false;st.mail=null;
+  clearAttach();resetForm();
+  try{sessionStorage.removeItem(SKEY);sessionStorage.removeItem(TMPKEY);history.replaceState(null,"",location.pathname+location.search);}catch(x){}
+  render();
 }
 function resolveReq(id,yes){
   var b=getB(id);if(!b||!b.req)return;var r=b.req;
@@ -973,7 +992,9 @@ document.addEventListener("click",function(e){
   if(!st.user)return;
   var u=st.user,id,b;
   if(d.pageSet&&d.pageKey){var page=Number(d.pageSet);if(Number.isInteger(page)&&page>0){st.pages[d.pageKey]=page;render();}return;}
-  if(d.out){fetch("/api/logout",{method:"POST"}).catch(function(){});logEv("Signed out","");st.menu=false;st.detail="";st.pwpop=null;st.pwlist=null;st.emailAcct=null;st.emailFocus=false;st.user=null;st.mustChange=false;st.mail=null;clearAttach();resetForm();try{sessionStorage.removeItem(SKEY);sessionStorage.removeItem(TMPKEY);history.replaceState(null,"",location.pathname+location.search);}catch(x){}render();return;}
+  if(d.confirmcancel){st.confirm=null;st.confirmFocus=false;render();return;}
+  if(d.confirmyes){var action=st.confirm&&st.confirm.action;st.confirm=null;st.confirmFocus=false;if(action){action();}return;}
+  if(d.out){openConfirm("Sign out","Are you sure you want to sign out of your account?","Sign out",signOut,true);return;}
   if(d.menu){st.menu=(st.menu===d.menu)?"":d.menu;render();return;}
   if(d.nid){openNotif(d.nid);return;}
   if(d.gobid){gotoBooking(d.gobid);return;}
@@ -998,8 +1019,8 @@ document.addEventListener("click",function(e){
   else if(d.copypwone){if(st.pwpop)copyText(st.pwpop.pw,"Password copied");}
   else if(d.closepw){st.pwpop=null;st.pwfocus=false;render();}
   else if(d.clrpw){st.pwlist=null;render();}
-  else if(d.done){b=getB(d.done);if(u.role==="faculty"&&b&&b.fid===u.fid&&b.status==="confirmed"){completeB(b.id);toast("Consultation marked as done");}}
-  else if(d.cancel){b=getB(d.cancel);if(u.role==="student"&&b&&b.sid===u.id&&active(b)){cancelB(b.id);toast("Booking cancelled");}}
+  else if(d.done){b=getB(d.done);if(u.role==="faculty"&&b&&b.fid===u.fid&&b.status==="confirmed"){openConfirm("Mark consultation as done","Mark this confirmed consultation as done? This will move it to completed consultations.","Mark as done",function(){completeB(b.id);toast("Consultation marked as done");},false);}}
+  else if(d.cancel){b=getB(d.cancel);if(u.role==="student"&&b&&b.sid===u.id&&active(b)){openConfirm("Cancel booking","Are you sure you want to cancel this booking? The consultation will remain cancelled.","Cancel booking",function(){cancelB(b.id);toast("Booking cancelled");},true);}}
   else if(d.ok||d.no){b=getB(d.ok||d.no);if(u.role==="faculty"&&b&&b.fid===u.fid&&b.status==="pending"){var yes=!!d.ok;decide(b.id,yes?"confirmed":"declined");toast(yes?"Consultation confirmed":"Request declined");}}
   else if(d.appr||d.keep){b=getB(d.appr||d.keep);if(u.role==="faculty"&&b&&b.fid===u.fid&&b.req){resolveReq(b.id,!!d.appr);}}
   else if(d.clrf&&u.role==="admin"){var K={bookings:{as:"all",af:"all",brf:"all",bpf:"all",q:""},log:{lq:"",lrf:"all",lpf:"all"},users:{uq:"",urf:"all",upf:"all"}}[d.clrf];if(K){Object.keys(K).forEach(function(k){st[k]=K[k];});var pageKey={bookings:"allBookings",log:"activityLog",users:"accounts"}[d.clrf];if(pageKey)st.pages[pageKey]=1;render();}}
@@ -1082,11 +1103,12 @@ document.addEventListener("click",function(e){
   if(st.menu&&!(e.target.closest&&e.target.closest(".usermenu"))){st.menu=false;render();}
 });
 document.addEventListener("keydown",function(e){
-  if(e.key==="Escape"){if(st.emailAcct){st.emailAcct=null;st.emailFocus=false;render();}else if(st.pwpop){st.pwpop=null;st.pwfocus=false;render();}else if(st.detail){closeDetail();}else if(st.menu){st.menu=false;render();}return;}
+  if(e.key==="Escape"){if(st.confirm){st.confirm=null;st.confirmFocus=false;render();}else if(st.emailAcct){st.emailAcct=null;st.emailFocus=false;render();}else if(st.pwpop){st.pwpop=null;st.pwfocus=false;render();}else if(st.detail){closeDetail();}else if(st.menu){st.menu=false;render();}return;}
   if((e.key==="Enter"||e.key===" ")&&e.target.matches&&e.target.matches("tr[data-bid]")){e.preventDefault();openDetail(e.target.dataset.bid);}
 });
 document.addEventListener("click",function(e){
   if(!st.user)return;var t=e.target;if(!t.closest)return;
+  if(t.classList.contains("ov")&&t.hasAttribute("data-confirmov")){st.confirm=null;st.confirmFocus=false;render();return;}
   if(t.classList.contains("ov")){if(st.emailAcct){st.emailAcct=null;st.emailFocus=false;render();return;}if(st.pwpop){st.pwpop=null;st.pwfocus=false;render();return;}if(st.detail){closeDetail();return;}}
   if(t.closest("[data-closedt]")){closeDetail();return;}
   var tr=t.closest("tr[data-bid]");
