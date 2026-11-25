@@ -433,6 +433,10 @@ tr.clk td:first-child .mono{text-decoration:underline dotted;text-underline-offs
 .dact{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
 .pwdlg{max-width:540px}
 .emaildlg{max-width:520px}
+.confirmdlg{max-width:460px}
+.confirmmessage{margin:14px 0 2px;color:var(--mute)}
+.btn.danger{background:var(--bad);color:#fff;box-shadow:0 2px 8px rgba(170,50,40,.28)}
+[data-theme="dark"] .btn.danger{color:#0a1730}
 .pwshow{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:14px 0 0;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--hl)}
 .pwshow .mono{font-size:1.02rem;font-weight:600;letter-spacing:.03em;word-break:break-all;color:var(--ink)}
 .pwdlg .hint{margin-top:10px}
