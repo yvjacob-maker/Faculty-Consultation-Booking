@@ -817,7 +817,9 @@ function cancelB(id,reason){
   saveAll();render();
 }
 function completeB(id){
-  var b=getB(id);if(!b||b.status!=="confirmed")return;b.status="completed";b.doneAt=new Date().toISOString();delete b.req;logEv("Booking completed",b.ref);
+  var b=getB(id);if(!b||b.status!=="confirmed")return;b.status="completed";b.doneAt=new Date().toISOString();delete b.req;
+  if(b.mode==="online"){var f=fById(b.fid);if(f.meet){f.meet="";saveF();}}
+  logEv("Booking completed",b.ref);
   notify(b.sid,"Your consultation with "+fById(b.fid).name+" on "+nice(b.date)+" at "+t12(b.time)+" was marked as completed.","completed",b.id);
   saveAll();render();
 }
