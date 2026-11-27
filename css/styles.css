@@ -34,6 +34,9 @@ input,select,textarea{width:100%;background:var(--field);border:1px solid var(--
 input:hover,select:hover,textarea:hover{border-color:var(--selb)}
 input:focus,select:focus,textarea:focus{box-shadow:0 0 0 3px var(--sel)}
 select option{background:var(--opt);color:var(--ink)}
+#af select,#af input[list]{padding-right:36px;background-image:linear-gradient(45deg,transparent 50%,var(--mute) 50%),linear-gradient(135deg,var(--mute) 50%,transparent 50%);background-position:calc(100% - 15px) 50%,calc(100% - 11px) 50%;background-repeat:no-repeat;background-size:4px 4px}
+#af select{-webkit-appearance:none;appearance:none}
+#af input[list]::-webkit-calendar-picker-indicator{opacity:0}
 .btn{position:relative;overflow:hidden;background:var(--pri);color:var(--prix);border:1px solid transparent;border-radius:8px;padding:9px 18px;font-weight:600;cursor:pointer;box-shadow:0 2px 8px rgba(31,78,156,.3)}
 .btn::after{content:"";position:absolute;inset:0;background:linear-gradient(110deg,transparent 35%,rgba(255,255,255,.3) 50%,transparent 65%);transform:translateX(-130%);transition:transform .6s ease}
 .btn:hover{transform:translateY(-1px);box-shadow:0 6px 16px rgba(31,78,156,.35)}
