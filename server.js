@@ -122,6 +122,52 @@ function sanitizeStateValue(key, value) {
   if (key === 'sis-users-v7' && Array.isArray(value)) return value.map(withoutClientPassword);
   return value;
 }
+async function syncBookingRecords(bookings) {
+  for (const booking of bookings) {
+    if (!booking || !booking.id) continue;
+    const values = [
+      String(booking.id || ''),
+      String(booking.sid || ''),
+      String(booking.fid || ''),
+      String(booking.topic || ''),
+      String(booking.date || '2000-01-01'),
+      String(booking.time || '00:00'),
+      String(booking.note || ''),
+      String(booking.cancellationReason || ''),
+      String(booking.status || 'Pending')
+    ];
+    const claimed = await db.runAsync(
+      `UPDATE bookings
+       SET client_booking_id = ?, student_id = ?, faculty_id = ?, subject = ?,
+           consultation_date = ?, consultation_time = ?, notes = ?,
+           cancellation_reason = ?, status = ?, updated_at = CURRENT_TIMESTAMP
+       WHERE client_booking_id IS NULL AND student_id = ? AND faculty_id = ?
+         AND subject = ? AND consultation_date = ? AND consultation_time = ?
+       LIMIT 1`,
+      [values[0], values[1], values[2], values[3], values[4], values[5], values[6],
+        values[7], values[8], values[1], values[2], values[3], values[4], values[5]]
+    );
+    if (!claimed.changes) {
+      await db.runAsync(
+        `INSERT INTO bookings
+          (client_booking_id, student_id, faculty_id, subject, consultation_date,
+           consultation_time, notes, cancellation_reason, status)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+         ON DUPLICATE KEY UPDATE
+           student_id = VALUES(student_id),
+           faculty_id = VALUES(faculty_id),
+           subject = VALUES(subject),
+           consultation_date = VALUES(consultation_date),
+           consultation_time = VALUES(consultation_time),
+           notes = VALUES(notes),
+           cancellation_reason = VALUES(cancellation_reason),
+           status = VALUES(status),
+           updated_at = CURRENT_TIMESTAMP`,
+        values
+      );
+    }
+  }
+}
 app.get('/api/app-state', (req, res) => {
   db.all('SELECT state_key, state_json FROM app_state', [], (err, rows) => {
     if (err) return res.status(500).json({ error: 'Could not load saved application data.' });
@@ -145,20 +191,10 @@ app.put('/api/app-state', (req, res) => {
     entries.forEach(([key, value]) => stmt.run(key, JSON.stringify(value)));
     stmt.finalize(err => {
       if (err) return res.status(500).json({ error: 'Could not save application data.' });
-      // Keep searchable relational copies for the required database entities.
-      db.serialize(() => {
-        if (Array.isArray(bookings)) {
-          db.run('DELETE FROM bookings');
-          const bp = db.prepare(`INSERT INTO bookings (student_id, faculty_id, subject, consultation_date, consultation_time, notes, status) VALUES (?, ?, ?, ?, ?, ?, ?)`);
-          bookings.forEach(b => bp.run(String(b.sid || ''), String(b.fid || ''), String(b.topic || ''), String(b.date || '2000-01-01'), String(b.time || '00:00'), String(b.note || ''), String(b.status || 'Pending')));
-          bp.finalize();
-        }
-      });
-
       // The accounts table is authoritative after the first run. Only use the
       // client state to bootstrap a brand-new database; after that, account
       // creation and password changes go through the validated server routes.
-      db.get('SELECT COUNT(*) AS count FROM accounts', [], (countError, row) => {
+      const saveBootstrapAccounts = () => db.get('SELECT COUNT(*) AS count FROM accounts', [], (countError, row) => {
         if (countError) return res.status(500).json({ error: 'Could not check account data.' });
         if (!row || row.count > 0 || !Array.isArray(users)) {
           return res.json({ message: 'Application data saved to MySQL.', savedKeys: entries.length });
@@ -187,6 +223,14 @@ app.put('/api/app-state', (req, res) => {
           console.error('Could not bootstrap account records:', error.message);
           res.status(500).json({ error: 'Could not initialize account records.' });
         });
+        if (Array.isArray(bookings)) {
+          syncBookingRecords(bookings).then(saveBootstrapAccounts).catch(error => {
+            console.error('Could not synchronize booking records:', error.message);
+            res.status(500).json({ error: 'Could not save booking records.' });
+          });
+        } else {
+          saveBootstrapAccounts();
+        }
       });
     });
   });
@@ -261,12 +305,23 @@ app.patch('/api/bookings/:id/status', requireRole('faculty', 'administrator'), (
   const { status, actor } = req.body;
   const allowed = ['Pending', 'Confirmed', 'Declined', 'Cancelled', 'Completed', 'Reschedule Requested'];
   if (!allowed.includes(status)) return res.status(400).json({ error: 'Invalid booking status.' });
-  db.run('UPDATE bookings SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [status, req.params.id], function (err) {
-    if (err) return res.status(500).json({ error: 'Could not update booking.' });
-    if (!this.changes) return res.status(404).json({ error: 'Booking not found.' });
-    db.run('INSERT INTO activity_logs (actor, action, details) VALUES (?, ?, ?)', [String(actor || 'System'), 'Booking status updated', `Booking #${req.params.id}: ${status}`]);
-    res.json({ message: 'Booking status updated.' });
-  });
+  const reason = req.body.cancellation_reason;
+  if (status === 'Cancelled' && (typeof reason !== 'string' || !reason.trim())) {
+    return res.status(400).json({ error: 'A cancellation reason is required.' });
+  }
+  const cancellationReason = status === 'Cancelled' ? reason.trim() : null;
+  db.run(
+    `UPDATE bookings
+     SET status = ?, cancellation_reason = CASE WHEN ? = 'Cancelled' THEN ? ELSE cancellation_reason END,
+         updated_at = CURRENT_TIMESTAMP
+     WHERE id = ?`,
+    [status, status, cancellationReason, req.params.id],
+    function (err) {
+      if (err) return res.status(500).json({ error: 'Could not update booking.' });
+      if (!this.changes) return res.status(404).json({ error: 'Booking not found.' });
+      db.run('INSERT INTO activity_logs (actor, action, details) VALUES (?, ?, ?)', [String(actor || 'System'), 'Booking status updated', `Booking #${req.params.id}: ${status}`]);
+      res.json({ message: 'Booking status updated.' });
+    });
 });
 app.get('/api/activity-logs', requireRole('administrator'), (req, res) => {
   db.all('SELECT * FROM activity_logs ORDER BY created_at DESC LIMIT 500', [], (err, rows) => {
