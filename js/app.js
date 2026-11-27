@@ -141,8 +141,10 @@ function threadsFor(u){
 }
 function unreadMsgs(u){return threadsFor(u).reduce(function(s,t){return s+t.un;},0);}
 function unread(u){return notifs.filter(function(n){return n.to===u.id&&!n.read;}).length;}
+var CONSULTATION_WINDOW_MS=30*60*1000;
 function startMs(b){var q=b.date.split("-"),t=b.time.split(":");return new Date(+q[0],+q[1]-1,+q[2],+t[0],+t[1]).getTime();}
-function reminders(u){var now=Date.now();return sorted(bookings.filter(function(b){var m=startMs(b);return b.status==="confirmed"&&owns(u,b)&&m+18e5>=now&&m<=now+1728e5;}));}
+function bookingWindowOpen(b){if(!b||typeof b.date!=="string"||typeof b.time!=="string")return false;var start=startMs(b);return isFinite(start)&&Date.now()<start+CONSULTATION_WINDOW_MS;}
+function reminders(u){var now=Date.now();return sorted(bookings.filter(function(b){var m=startMs(b);return b.status==="confirmed"&&owns(u,b)&&m+CONSULTATION_WINDOW_MS>=now&&m<=now+1728e5;}));}
 var RSKEY="sis-remseen-v7",remseen=load(RSKEY,{});
 function rkey(u,b){return u.id+"|"+b.id+"|"+b.date+"|"+b.time;}
 function unseenRem(u){return reminders(u).filter(function(b){return !remseen[rkey(u,b)];}).length;}
@@ -360,7 +362,7 @@ function vChat(){
   var threadPage=pagedList("chatThreads",th);
   h+='<div class="chatwrap"><div class="threads panel">'+threadPage.items.map(function(t){var o=u.role==="student"?fById(t.b.fid).name:t.b.name;return '<button class="thr" data-th="'+t.b.id+'" aria-pressed="'+(t.b.id===b.id)+'"><b>'+esc(o)+(t.un?'<span class="nbadge">'+t.un+'</span>':'')+'</b><small>'+esc(nice(t.b.date))+', '+t12(t.b.time)+'</small><small>'+MODES[t.b.mode||"face"]+' · '+t.b.status+'</small></button>';}).join("")+threadPage.controls+'</div>';
   h+='<div class="panel chatpane"><div class="chead"><div><h2 style="margin:0">'+esc(other)+'</h2><p class="sub" style="margin:0">'+esc(nice(b.date))+' at '+t12(b.time)+' · '+MODES[b.mode||"face"]+'</p></div>'+tag(b.status)+'</div>';
-  if(b.mode==="online"&&active(b)){
+  if(b.mode==="online"&&active(b)&&bookingWindowOpen(b)){
     var meet=meetURL(f.meet);
     h+='<section class="meet-card" aria-label="Google Meet consultation"><span class="meet-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="13" height="12" rx="2"/><path d="m16 10 5-3v10l-5-3"/></svg></span><div class="meet-copy"><b>Google Meet</b>';
     if(b.status!=="confirmed")h+='<span>The join link will be available after this consultation is confirmed.</span>';
@@ -1126,6 +1128,10 @@ document.addEventListener("mouseover",hoverIn);document.addEventListener("focusi
 document.addEventListener("mouseout",hoverOut);document.addEventListener("focusout",hoverOut);
 function tick(){
   clocks();
+  if(st.user&&st.view==="chat"&&document.querySelector(".meet-card")){
+    var meetBooking=getB(st.cb);
+    if(!meetBooking||!active(meetBooking)||!bookingWindowOpen(meetBooking))render();
+  }
   if(!st.user){var l=lockLeft(),er=$("lerr"),bt=$("lbtn");
     if(l>0){if(er)er.textContent=lockMsg(l);}
     else if(bt&&bt.disabled){st.lerr="";render();}}
