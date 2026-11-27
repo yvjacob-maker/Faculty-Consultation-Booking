@@ -1,14 +1,14 @@
 (function(){
 var IMG_SEAL="assets/seal.png",IMG_CCS="assets/ccs-logo.png",IMG_CCSD="assets/ccs-logo-dark.png";
 var FAC=[
- {id:"f1",name:"Prof. Maria Santos",pos:"IT Instructor",subjects:["Programming 1","Object-Oriented Programming"],room:"CCS Room 204",meet:"https://meet.google.com/abc-defg-hij",days:[1,3],slots:["09:00","10:00","11:00","14:00"]},
+ {id:"f1",name:"Prof. Maria Santos",pos:"IT Instructor",subjects:["Programming 1","Object-Oriented Programming"],room:"CCS Room 204",meet:"",days:[1,3],slots:["09:00","10:00","11:00","14:00"]},
  {id:"f2",name:"Prof. John Reyes",pos:"IT Instructor",subjects:["Web Development","Web Systems and Technologies"],room:"CCS Room 118",meet:"",days:[2,4],slots:["08:30","09:30","13:00","15:00"]},
- {id:"f3",name:"Prof. Angela Cruz",pos:"IT Instructor",subjects:["Database Management Systems","Advanced Database Systems"],room:"CCS Room 305",meet:"https://meet.google.com/xyz-uvwx-rst",days:[1,2,5],slots:["10:00","11:00","13:30","16:00"]},
+ {id:"f3",name:"Prof. Angela Cruz",pos:"IT Instructor",subjects:["Database Management Systems","Advanced Database Systems"],room:"CCS Room 305",meet:"",days:[1,2,5],slots:["10:00","11:00","13:30","16:00"]},
  {id:"f4",name:"Prof. Mark Villanueva",pos:"IT Instructor",subjects:["Networking","Computer Networks"],room:"CCS Room 112",meet:"",days:[3,4,5],slots:["09:00","10:30","14:00","15:30"]},
- {id:"f5",name:"Prof. Christine Mendoza",pos:"IT Instructor",subjects:["Information Assurance and Security"],room:"CCS Room 209",meet:"https://meet.google.com/lmn-opqr-stu",days:[1,4],slots:["08:00","09:00","13:00","14:30"]},
+ {id:"f5",name:"Prof. Christine Mendoza",pos:"IT Instructor",subjects:["Information Assurance and Security"],room:"CCS Room 209",meet:"",days:[1,4],slots:["08:00","09:00","13:00","14:30"]},
  {id:"f6",name:"Prof. Daniel Garcia",pos:"IT Instructor",subjects:["Systems Analysis and Design"],room:"CCS Room 210",meet:"",days:[2,5],slots:["09:30","11:00","13:30","15:00"]},
  {id:"f7",name:"Prof. Patricia Lopez",pos:"IT Instructor",subjects:["Human-Computer Interaction","UI/UX Design"],room:"CCS Room 301",meet:"",days:[1,3,5],slots:["08:30","10:00","14:00","16:00"]},
- {id:"f8",name:"Prof. Michael Torres",pos:"IT Instructor",subjects:["Data Structures and Algorithms"],room:"CCS Room 115",meet:"https://meet.google.com/def-ghij-klm",days:[2,3],slots:["09:00","10:30","13:00","15:30"]},
+ {id:"f8",name:"Prof. Michael Torres",pos:"IT Instructor",subjects:["Data Structures and Algorithms"],room:"CCS Room 115",meet:"",days:[2,3],slots:["09:00","10:30","13:00","15:30"]},
  {id:"f9",name:"Prof. Andrea Flores",pos:"IT Instructor",subjects:["Research Methods","Capstone Project"],room:"CCS Room 307",meet:"",days:[3,4],slots:["10:00","11:30","14:00","16:00"]},
  {id:"f10",name:"Prof. Robert Dela Cruz",pos:"CCS Dean",subjects:["Academic Advising","Student Consultation"],room:"CCS Dean’s Office",meet:"",days:[1,2,4],slots:["08:00","09:30","13:30","15:00"]}
 ];
@@ -66,8 +66,19 @@ async function reqJSON(url,opts){var r=await fetch(url,opts||{}),d={};try{d=awai
 function emailOk(v){return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(v||""));}
 function mkref(date){var c="ABCDEFGHJKLMNPQRSTUVWXYZ23456789",r="";for(var i=0;i<4;i++)r+=c[Math.floor(Math.random()*c.length)];return "CB-"+date.replace(/-/g,"")+"-"+r;}
 function rid(p){return p+Date.now()+Math.random().toString(36).slice(2,6);}
-function okMeet(u){return typeof u==="string"&&/^https:\/\/meet\.google\.com\/[A-Za-z0-9_\-\/?=&.]+$/.test(u);}
-USERS=load(UKEY,USERS);FAC=load(FKEY,FAC);if(!load(UKEY,null))put(UKEY,USERS);if(!load(FKEY,null))put(FKEY,FAC);
+function meetURL(value){
+  if(typeof value!=="string")return "";
+  try{
+    var url=new URL(value.trim());
+    if(url.protocol!=="https:"||url.hostname.toLowerCase()!=="meet.google.com"||url.port||url.username||url.password||url.pathname==="/"||/^\/new\/?$/i.test(url.pathname))return "";
+    return url.href;
+  }catch(e){return "";}
+}
+function okMeet(value){return !!meetURL(value);}
+USERS=load(UKEY,USERS);FAC=load(FKEY,FAC);if(!load(UKEY,null))put(UKEY,USERS);
+var placeholderMeetLinks={"f1":"https://meet.google.com/abc-defg-hij","f3":"https://meet.google.com/xyz-uvwx-rst","f5":"https://meet.google.com/lmn-opqr-stu","f8":"https://meet.google.com/def-ghij-klm"},clearedMeetPlaceholder=false;
+FAC.forEach(function(f){if(placeholderMeetLinks[f.id]&&f.meet===placeholderMeetLinks[f.id]){f.meet="";clearedMeetPlaceholder=true;}});
+if(clearedMeetPlaceholder||!load(FKEY,null))put(FKEY,FAC);
 function fById(id){return FAC.filter(function(f){return f.id===id;})[0]||{id:id,name:"Unknown faculty",pos:"",subjects:[],room:"",meet:"",days:[],slots:[]};}
 function subjText(f){return (f.subjects||[]).join(", ");}
 function uById(id){return USERS.filter(function(u){return u.id===id;})[0];}
@@ -349,7 +360,17 @@ function vChat(){
   var threadPage=pagedList("chatThreads",th);
   h+='<div class="chatwrap"><div class="threads panel">'+threadPage.items.map(function(t){var o=u.role==="student"?fById(t.b.fid).name:t.b.name;return '<button class="thr" data-th="'+t.b.id+'" aria-pressed="'+(t.b.id===b.id)+'"><b>'+esc(o)+(t.un?'<span class="nbadge">'+t.un+'</span>':'')+'</b><small>'+esc(nice(t.b.date))+', '+t12(t.b.time)+'</small><small>'+MODES[t.b.mode||"face"]+' · '+t.b.status+'</small></button>';}).join("")+threadPage.controls+'</div>';
   h+='<div class="panel chatpane"><div class="chead"><div><h2 style="margin:0">'+esc(other)+'</h2><p class="sub" style="margin:0">'+esc(nice(b.date))+' at '+t12(b.time)+' · '+MODES[b.mode||"face"]+'</p></div>'+tag(b.status)+'</div>';
-  if(b.mode==="online"&&b.status==="confirmed"&&okMeet(f.meet))h+='<p class="sub" style="margin:0 0 8px"><a href="'+esc(f.meet)+'" target="_blank" rel="noopener noreferrer">Join Google Meet</a></p>';
+  if(b.mode==="online"&&active(b)){
+    var meet=meetURL(f.meet);
+    h+='<section class="meet-card" aria-label="Google Meet consultation"><span class="meet-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="13" height="12" rx="2"/><path d="m16 10 5-3v10l-5-3"/></svg></span><div class="meet-copy"><b>Google Meet</b>';
+    if(b.status!=="confirmed")h+='<span>The join link will be available after this consultation is confirmed.</span>';
+    else if(meet)h+='<span>Online consultation with '+esc(other)+' · '+esc(nice(b.date))+' at '+t12(b.time)+'</span>';
+    else h+='<span>A Google Meet link has not been added yet.</span>';
+    h+='</div>';
+    if(b.status==="confirmed"&&meet)h+='<a class="btn sm meet-join" href="'+esc(meet)+'" target="_blank" rel="noopener noreferrer">Join meeting <span aria-hidden="true">↗</span></a>';
+    else if(u.role==="faculty")h+='<button type="button" class="btn sm ghost meet-setup" data-v="avail">Set up link</button>';
+    h+='</section>';
+  }
   h+='<div class="msgs" id="msgs">'+(cur.ms.length?cur.ms.map(function(m){return '<div class="bub'+(m.uid===u.id?" me":"")+'"><span class="who">'+esc(m.name)+'</span>'+msgBody(m)+'<span class="when">'+ts(m.t)+'</span></div>';}).join(""):'<p class="empty">No messages yet. Say hello.</p>')+'</div>';
   if(pend.length)h+='<div class="apend" aria-label="Files ready to send">'+pend.map(function(a,i){return '<div class="apitem">'+(a.kind==="video"?'<video src="'+a.preview+'" muted></video>':(a.kind==="file"?'<span class="apfile">'+FILEICON+'</span>':'<img src="'+a.preview+'" alt="">'))+'<span class="apname" title="'+esc(a.name)+'">'+esc(a.name)+'</span><button type="button" class="apx" data-rmatt="'+i+'" aria-label="Remove '+esc(a.name)+'">×</button></div>';}).join("")+'</div>';
   h+='<form id="cf" class="cform" novalidate><label class="attbtn'+(closed?" off":"")+'" title="Attach a photo, video, or file" aria-label="Attach a photo, video, or file">'+CLIP+'<input id="cfile" type="file" accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.rtf,.odt,.ods,.odp,.md,.epub,.zip,.rar,.7z,.tar,.gz,.json,.xml,.sql,.py,.java,.c,.h,.cpp,.cs,.php,.js,.ts,.jsx,.tsx,.css,.tif,.tiff" multiple'+(closed?" disabled":"")+'></label><input id="cm" maxlength="500" aria-label="Message" placeholder="'+(closed?"This booking is closed":(pend.length?"Add a caption (optional)":"Write a message"))+'" autocomplete="off"'+(closed?" disabled":"")+'><button class="btn" type="submit"'+(closed?" disabled":"")+'>Send</button></form></div></div>';
@@ -367,7 +388,7 @@ function vNotif(){
 }
 function vAvail(){
   var f=fById(st.user.fid);
-  return '<h1>My availability</h1><p class="lead">Choose the days and times students can book with you, plus your room and Google Meet link. Existing bookings are not affected.</p><div class="panel"><h2>Consultation days</h2><div class="days">'+[1,2,3,4,5].map(function(d){return '<button class="day" data-wd="'+d+'" aria-pressed="'+(f.days.indexOf(d)>-1)+'">'+WD[d]+'</button>';}).join("")+'</div><h2 style="margin-top:14px">Time slots</h2><div class="slots">'+POOL.map(function(t){return '<button class="slot" data-sl="'+t+'" aria-pressed="'+(f.slots.indexOf(t)>-1)+'">'+t12(t)+'</button>';}).join("")+'</div><div class="cols"><div><label for="rm">Consultation room</label><input id="rm" data-s2="room" value="'+esc(f.room)+'"></div><div><label for="mt">Google Meet link (online consultations)</label><input id="mt" data-s2="meet" placeholder="https://meet.google.com/abc-defg-hij" value="'+esc(f.meet||"")+'"></div></div></div>';
+  return '<h1>My availability</h1><p class="lead">Choose the days and times students can book with you, plus your room and Google Meet link. Existing bookings are not affected.</p><div class="panel"><h2>Consultation days</h2><div class="days">'+[1,2,3,4,5].map(function(d){return '<button class="day" data-wd="'+d+'" aria-pressed="'+(f.days.indexOf(d)>-1)+'">'+WD[d]+'</button>';}).join("")+'</div><h2 style="margin-top:14px">Time slots</h2><div class="slots">'+POOL.map(function(t){return '<button class="slot" data-sl="'+t+'" aria-pressed="'+(f.slots.indexOf(t)>-1)+'">'+t12(t)+'</button>';}).join("")+'</div><div class="cols"><div><label for="rm">Consultation room</label><input id="rm" data-s2="room" value="'+esc(f.room)+'"></div><div><label for="mt">Google Meet link (online consultations)</label><input id="mt" data-s2="meet" placeholder="Paste your Google Meet link here" value="'+esc(f.meet||"")+'"><p class="hint">Create a meeting in Google Meet, then paste its link here. The link is shared with students after you confirm an online consultation.</p><a class="btn sm ghost meet-create" href="https://meet.google.com/new" target="_blank" rel="noopener noreferrer">Create a Google Meet link <span aria-hidden="true">↗</span></a></div></div></div>';
 }
 function cnt(s){return bookings.filter(function(b){return b.status===s;}).length;}
 function logTbl(l,empty,pageKey){return tbl(["Time","User","Role","Action","Detail"],l.map(function(e){return [ts(e.t),esc(e.u),e.ro==="none"?"—":ROLE[e.ro],esc(e.a),'<span class="mono">'+esc(e.d)+'</span>'];}),empty||"No activity recorded.",null,pageKey);}
@@ -962,7 +983,7 @@ document.addEventListener("change",function(e){
   if(d.s2&&st.user&&st.user.role==="faculty"){
     var fr=fById(st.user.fid),v=t.value.trim();
     if(d.s2==="room"){if(v){fr.room=v;saveF();toast("Room saved");}else t.value=fr.room;}
-    else if(d.s2==="meet"){if(!v){fr.meet="";saveF();toast("Meeting link removed");}else if(okMeet(v)){fr.meet=v;saveF();toast("Meeting link saved");}else{toast("Enter a valid Google Meet link, like https://meet.google.com/abc-defg-hij");t.value=fr.meet||"";}}
+    else if(d.s2==="meet"){if(!v){fr.meet="";saveF();toast("Meeting link removed");}else{var meet=meetURL(v);if(meet){fr.meet=meet;saveF();toast("Meeting link saved");}else{toast("Enter a valid https://meet.google.com/ meeting link.");t.value=fr.meet||"";}}}
   }
 });
 document.addEventListener("dragover",function(e){e.preventDefault();var z=e.target.closest&&e.target.closest("#dz");if(z)z.classList.add("over");});
