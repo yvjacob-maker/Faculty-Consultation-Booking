@@ -139,17 +139,38 @@ async function migrate() {
   await execAsync(`
     CREATE TABLE IF NOT EXISTS bookings (
       id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+      client_booking_id VARCHAR(191) NULL,
       student_id VARCHAR(191) NOT NULL,
       faculty_id VARCHAR(191) NOT NULL,
       subject VARCHAR(255) NOT NULL,
       consultation_date VARCHAR(32) NOT NULL,
       consultation_time VARCHAR(32) NOT NULL,
       notes TEXT,
+      cancellation_reason TEXT,
       status VARCHAR(64) NOT NULL DEFAULT 'Pending',
       created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+      updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE KEY idx_bookings_client_id (client_booking_id)
     ) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci
   `);
+  const bookingColumns = await allAsync(
+    'SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ?',
+    [database, 'bookings']
+  );
+  const existingBookingColumns = new Set(bookingColumns.map(column => column.COLUMN_NAME));
+  if (!existingBookingColumns.has('client_booking_id')) {
+    await execAsync('ALTER TABLE bookings ADD COLUMN client_booking_id VARCHAR(191) NULL');
+  }
+  if (!existingBookingColumns.has('cancellation_reason')) {
+    await execAsync('ALTER TABLE bookings ADD COLUMN cancellation_reason TEXT NULL');
+  }
+  const bookingIndexes = await allAsync(
+    'SELECT INDEX_NAME FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND INDEX_NAME = ?',
+    [database, 'bookings', 'idx_bookings_client_id']
+  );
+  if (!bookingIndexes.length) {
+    await execAsync('CREATE UNIQUE INDEX idx_bookings_client_id ON bookings (client_booking_id)');
+  }
   await execAsync(`
     CREATE TABLE IF NOT EXISTS activity_logs (
       id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,

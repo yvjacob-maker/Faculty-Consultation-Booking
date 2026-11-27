@@ -273,7 +273,7 @@ function detailHTML(){
     a+='<button class="btn sm ghost" data-openchat="'+b.id+'">Chat</button>';
   }
   var h='<div class="ov"><div class="dlg'+(st.dnew?" pop":"")+'" role="dialog" aria-modal="true" aria-labelledby="dtt"><div class="dhd"><div><h2 id="dtt" style="margin:0">Booking details</h2><span class="mono sub">'+esc(b.ref)+'</span></div><div class="dhr">'+tag(b.status)+'<button class="x" data-closedt="1" aria-label="Close">×</button></div></div>';
-  h+='<dl class="dgrid"><div><dt>Faculty member</dt><dd>'+esc(f.name)+'<div class="sub">'+esc(f.pos)+'</div></dd></div><div><dt>Student</dt><dd>'+esc(b.name)+'<div class="sub">'+esc(b.sid)+(stu?" · "+esc(stu.unit):"")+'</div></dd></div><div><dt>Subject or course</dt><dd>'+esc(b.topic)+'</dd></div><div><dt>Concern or reason</dt><dd>'+esc(b.concern||"—")+'</dd></div><div><dt>Date</dt><dd>'+esc(nice(b.date))+'</dd></div><div><dt>Time</dt><dd>'+t12(b.time)+'</dd></div><div><dt>Consultation type</dt><dd>'+MODES[m]+'</dd></div><div><dt>Location or link</dt><dd>'+loc+'</dd></div><div class="wide"><dt>Notes from the student</dt><dd>'+(b.note?esc(b.note):"—")+'</dd></div><div><dt>Requested on</dt><dd>'+esc(ts(b.created))+'</dd></div>'+(b.doneAt?'<div><dt>Completed on</dt><dd>'+esc(ts(b.doneAt))+'</dd></div>':"")+'</dl>';
+  h+='<dl class="dgrid"><div><dt>Faculty member</dt><dd>'+esc(f.name)+'<div class="sub">'+esc(f.pos)+'</div></dd></div><div><dt>Student</dt><dd>'+esc(b.name)+'<div class="sub">'+esc(b.sid)+(stu?" · "+esc(stu.unit):"")+'</div></dd></div><div><dt>Subject or course</dt><dd>'+esc(b.topic)+'</dd></div><div><dt>Concern or reason</dt><dd>'+esc(b.concern||"—")+'</dd></div><div><dt>Date</dt><dd>'+esc(nice(b.date))+'</dd></div><div><dt>Time</dt><dd>'+t12(b.time)+'</dd></div><div><dt>Consultation type</dt><dd>'+MODES[m]+'</dd></div><div><dt>Location or link</dt><dd>'+loc+'</dd></div><div class="wide"><dt>Notes from the student</dt><dd>'+(b.note?esc(b.note):"—")+'</dd></div>'+(b.status==="cancelled"?'<div class="wide"><dt>Cancellation reason</dt><dd>'+(b.cancellationReason?esc(b.cancellationReason):"Not recorded for this booking")+'</dd></div>':"")+'<div><dt>Requested on</dt><dd>'+esc(ts(b.created))+'</dd></div>'+(b.doneAt?'<div><dt>Completed on</dt><dd>'+esc(ts(b.doneAt))+'</dd></div>':"")+'</dl>';
   if(b.req)h+='<div class="notice">Change requested: '+esc(nice(b.req.date))+' at '+t12(b.req.time)+(b.req.reason?'. Reason: '+esc(b.req.reason):"")+'</div>';
   h+='<h3 class="dsub">Activity</h3>'+(ev.length?'<ol class="tlist">'+ev.map(function(e){return '<li><b>'+esc(e.a)+'</b><div class="sub">'+esc(e.u)+' · '+esc(ts(e.t))+'</div></li>';}).join("")+'</ol>':'<p class="sub">No activity recorded.</p>');
   if(a)h+='<div class="dact">'+a+'</div>';
@@ -751,7 +751,7 @@ function render(){
   var a=$("app");
   try{
     if(!st.user){st.pwpop=null;st.pwlist=null;st.pwfocus=false;st.emailAcct=null;st.emailFocus=false;a.innerHTML=st.showLogin?loginHTML():landingHTML();var rs=document.querySelector(".roles");if(rs){var ni=rs.getAttribute("data-i");if(rs.style.getPropertyValue("--i")!==ni){void rs.offsetWidth;rs.style.setProperty("--i",ni);}}st.rprev=null;st.inkPrev=null;document.body.style.overflow="";document.body.classList.remove("nav-hidden");clocks();return;}
-    if(st.mustChange){st.pwpop=null;st.pwlist=null;st.pwfocus=false;st.emailAcct=null;st.emailFocus=false;a.innerHTML=vForcePw()+ (st.confirm?confirmHTML(): "");st.rprev=null;st.inkPrev=null;document.body.style.overflow=st.confirm?"hidden":"";document.body.classList.remove("nav-hidden");if(st.confirmFocus){var cy=document.querySelector("[data-confirmyes]");if(cy)cy.focus();st.confirmFocus=false;}clocks();return;}
+    if(st.mustChange){st.pwpop=null;st.pwlist=null;st.pwfocus=false;st.emailAcct=null;st.emailFocus=false;a.innerHTML=vForcePw()+ (st.confirm?confirmHTML(): "");st.rprev=null;st.inkPrev=null;document.body.style.overflow=st.confirm?"hidden":"";document.body.classList.remove("nav-hidden");if(st.confirmFocus){var cy=document.querySelector(st.confirm&&st.confirm.reasonRequired?"#cancelreason":"[data-confirmyes]");if(cy)cy.focus();st.confirmFocus=false;}clocks();return;}
     var u=st.user,body,pw=(st.view==="pw"&&!st.nf);
     if(st.nf)body=nfHTML();
     else if(!canView(st.view))body='<div class="panel nf"><div class="code404">403</div><h1>Access denied</h1><p class="lead">Your account type does not have permission to open this page.</p><div class="acts"><button class="btn" data-v="'+VIEWS[u.role][0][0]+'">Go to my dashboard</button></div></div>';
@@ -765,7 +765,7 @@ function render(){
     var emailmodal=st.emailAcct?emailPopupHTML():"";
     var confirmmodal=st.confirm?confirmHTML(): "";
     a.innerHTML='<header class="nb'+(st.navIn?" slide":"")+'"><div class="nbin"><img class="ccslogo lm" src="'+IMG_CCS+'" alt="College of Computer Studies, Camarines Sur Polytechnic Colleges"><img class="ccslogo dm" src="'+IMG_CCSD+'" alt="" aria-hidden="true"><nav class="mainnav" aria-label="Main"><span class="navhl" aria-hidden="true"></span><span class="navink" aria-hidden="true"></span>'+links+'</nav><div class="nbr"><div class="clockbox"><span class="ct" data-ct></span><span class="cd" data-cd></span></div>'+themeSwitch()+icons+'<div class="usermenu"><button class="avatar" data-menu="user" aria-haspopup="true" aria-expanded="'+(st.menu==="user")+'" aria-label="Account menu"><span class="av">'+esc(initials(u.name))+'</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>'+menu+'</div></div></div></header><div class="wrap2"><main class="page'+(st.enter&&!pw?" enter":"")+'">'+body+'</main></div>'+modal+pwmodal+emailmodal+confirmmodal;
-    st.enter=false;st.navIn=false;document.body.style.overflow=(st.detail||st.pwpop||st.emailAcct||st.confirm)?"hidden":"";if(st.dfocus){var cb=document.querySelector("[data-closedt]");if(cb)cb.focus();st.dfocus=false;}if(st.pwfocus){var pb=document.querySelector("[data-closepw]");if(pb)pb.focus();st.pwfocus=false;}if(st.emailFocus){var eb=$("eemail");if(eb){eb.focus();try{eb.setSelectionRange(eb.value.length,eb.value.length);}catch(x){}}st.emailFocus=false;}if(st.confirmFocus){var yb=document.querySelector("[data-confirmyes]");if(yb)yb.focus();st.confirmFocus=false;}st.dnew=false;
+    st.enter=false;st.navIn=false;document.body.style.overflow=(st.detail||st.pwpop||st.emailAcct||st.confirm)?"hidden":"";if(st.dfocus){var cb=document.querySelector("[data-closedt]");if(cb)cb.focus();st.dfocus=false;}if(st.pwfocus){var pb=document.querySelector("[data-closepw]");if(pb)pb.focus();st.pwfocus=false;}if(st.emailFocus){var eb=$("eemail");if(eb){eb.focus();try{eb.setSelectionRange(eb.value.length,eb.value.length);}catch(x){}}st.emailFocus=false;}if(st.confirmFocus){var yb=document.querySelector(st.confirm&&st.confirm.reasonRequired?"#cancelreason":"[data-confirmyes]");if(yb)yb.focus();st.confirmFocus=false;}st.dnew=false;
     var ink=document.querySelector(".navink"),act=document.querySelector(".mainnav [aria-current=page]");
     if(ink&&act){var L=act.offsetLeft,W=act.offsetWidth;ink.style.left=L+"px";ink.style.width=W+"px";if(st.inkPrev&&(st.inkPrev.l!==L||st.inkPrev.w!==W)&&ink.animate)ink.animate([{left:st.inkPrev.l+"px",width:st.inkPrev.w+"px"},{left:L+"px",width:W+"px"}],{duration:380,easing:"cubic-bezier(.4,0,.2,1)"});st.inkPrev={l:L,w:W};}else{if(ink)ink.style.display="none";st.inkPrev=null;}
     if(st.view==="chat"&&!st.nf){var m=$("msgs");if(m)m.scrollTop=m.scrollHeight;}
@@ -788,9 +788,9 @@ function decide(id,s){
   notify(b.sid,"Your consultation request with "+fById(b.fid).name+" on "+nice(b.date)+" at "+t12(b.time)+" was "+(s==="declined"?"rejected":"approved")+".",s,b.id);
   saveAll();render();
 }
-function cancelB(id){
-  var b=getB(id);if(!b)return;b.status="cancelled";delete b.req;logEv("Booking cancelled",b.ref);
-  var fu=facUser(b.fid);if(fu)notify(fu.id,b.name+" cancelled the consultation on "+nice(b.date)+" at "+t12(b.time)+".","cancelled",b.id);
+function cancelB(id,reason){
+  var b=getB(id);if(!b)return;b.status="cancelled";b.cancellationReason=reason;delete b.req;logEv("Booking cancelled",b.ref);
+  var fu=facUser(b.fid);if(fu)notify(fu.id,b.name+" cancelled the consultation on "+nice(b.date)+" at "+t12(b.time)+". Reason: "+b.cancellationReason,"cancelled",b.id);
   saveAll();render();
 }
 function completeB(id){
@@ -798,15 +798,16 @@ function completeB(id){
   notify(b.sid,"Your consultation with "+fById(b.fid).name+" on "+nice(b.date)+" at "+t12(b.time)+" was marked as completed.","completed",b.id);
   saveAll();render();
 }
-function openConfirm(title,message,label,action,danger){
+function openConfirm(title,message,label,action,danger,options){
   st.confirm={title:title,message:message,label:label,action:action,danger:!!danger};
+  if(options)Object.keys(options).forEach(function(k){st.confirm[k]=options[k];});
   st.confirmFocus=true;
   render();
 }
 function confirmHTML(){
   if(!st.confirm)return "";
   var c=st.confirm;
-  return '<div class="ov" data-confirmov="1"><div class="dlg confirmdlg" role="dialog" aria-modal="true" aria-labelledby="confirmtitle" aria-describedby="confirmmessage"><div class="dhd"><h2 id="confirmtitle">'+esc(c.title)+'</h2><button type="button" class="x" data-confirmcancel="1" aria-label="Cancel">×</button></div><p id="confirmmessage" class="confirmmessage">'+esc(c.message)+'</p><div class="dact"><button type="button" class="btn ghost" data-confirmcancel="1">Cancel</button><button type="button" class="btn'+(c.danger?" danger":"")+'" data-confirmyes="1">'+esc(c.label)+'</button></div></div></div>';
+  return '<div class="ov" data-confirmov="1"><div class="dlg confirmdlg" role="dialog" aria-modal="true" aria-labelledby="confirmtitle" aria-describedby="confirmmessage"><div class="dhd"><h2 id="confirmtitle">'+esc(c.title)+'</h2><button type="button" class="x" data-confirmcancel="1" aria-label="Cancel">×</button></div><p id="confirmmessage" class="confirmmessage">'+esc(c.message)+'</p>'+(c.reasonRequired?'<label for="cancelreason">Reason for cancellation</label><textarea id="cancelreason" data-confirmreason="1" rows="4" required aria-required="true" aria-invalid="'+(c.error?"true":"false")+'">'+esc(c.reason||"")+'</textarea><p id="cancelreasonerr" class="err" role="alert">'+esc(c.error||"")+'</p>':"")+'<div class="dact"><button type="button" class="btn ghost" data-confirmcancel="1">Cancel</button><button type="button" class="btn'+(c.danger?" danger":"")+'" data-confirmyes="1">'+esc(c.label)+'</button></div></div></div>';
 }
 function signOut(){
   fetch("/api/logout",{method:"POST"}).catch(function(){});
@@ -942,6 +943,7 @@ document.addEventListener("submit",function(e){
 });
 document.addEventListener("input",function(e){
   var t=e.target,k=t.dataset&&t.dataset.k;if(k){st.form[k]=t.value;if(k==="sj")render();}
+  if(t.dataset&&t.dataset.confirmreason&&st.confirm){st.confirm.reason=t.value;st.confirm.error="";t.setAttribute("aria-invalid","false");var cancelError=$("cancelreasonerr");if(cancelError)cancelError.textContent="";}
   if(t.id==="p1"||t.id==="p2"){var pc=$("pwcheck");if(pc){var q1=$("p1"),q2=$("p2");pc.innerHTML=pwReqHTML(q1?q1.value:"",q2?q2.value:"");}}
   if(t.dataset&&t.dataset.q){st[t.dataset.q]=t.value;var pageKey={q:"allBookings",lq:"activityLog",uq:"accounts"}[t.dataset.q];if(pageKey)st.pages[pageKey]=1;render();var qi=$(t.id);if(qi){qi.focus();try{qi.setSelectionRange(qi.value.length,qi.value.length);}catch(x){}}}
 });
@@ -996,7 +998,14 @@ document.addEventListener("click",function(e){
   var u=st.user,id,b;
   if(d.pageSet&&d.pageKey){var page=Number(d.pageSet);if(Number.isInteger(page)&&page>0){st.pages[d.pageKey]=page;render();}return;}
   if(d.confirmcancel){st.confirm=null;st.confirmFocus=false;render();return;}
-  if(d.confirmyes){var action=st.confirm&&st.confirm.action;st.confirm=null;st.confirmFocus=false;if(action){action();}return;}
+  if(d.confirmyes){
+    var confirmation=st.confirm,reason="";
+    if(confirmation&&confirmation.reasonRequired){
+      var reasonField=$("cancelreason");reason=reasonField?reasonField.value.trim():"";
+      if(!reason){confirmation.error="Enter a reason for cancelling this booking.";if(reasonField){reasonField.setAttribute("aria-invalid","true");reasonField.focus();}var reasonError=$("cancelreasonerr");if(reasonError)reasonError.textContent=confirmation.error;return;}
+    }
+    var action=confirmation&&confirmation.action;st.confirm=null;st.confirmFocus=false;if(action){action(reason);}return;
+  }
   if(d.out){openConfirm("Sign out","Are you sure you want to sign out of your account?","Sign out",signOut,true);return;}
   if(d.menu){st.menu=(st.menu===d.menu)?"":d.menu;render();return;}
   if(d.nid){openNotif(d.nid);return;}
@@ -1023,7 +1032,7 @@ document.addEventListener("click",function(e){
   else if(d.closepw){st.pwpop=null;st.pwfocus=false;render();}
   else if(d.clrpw){st.pwlist=null;render();}
   else if(d.done){b=getB(d.done);if(u.role==="faculty"&&b&&b.fid===u.fid&&b.status==="confirmed"){openConfirm("Mark consultation as done","Mark this confirmed consultation as done? This will move it to completed consultations.","Mark as done",function(){completeB(b.id);toast("Consultation marked as done");},false);}}
-  else if(d.cancel){b=getB(d.cancel);if(u.role==="student"&&b&&b.sid===u.id&&active(b)){openConfirm("Cancel booking","Are you sure you want to cancel this booking? The consultation will remain cancelled.","Cancel booking",function(){cancelB(b.id);toast("Booking cancelled");},true);}}
+  else if(d.cancel){b=getB(d.cancel);if(u.role==="student"&&b&&b.sid===u.id&&active(b)){openConfirm("Cancel booking","Please provide a reason before cancelling this booking.","Cancel booking",function(reason){cancelB(b.id,reason);toast("Booking cancelled");},true,{reasonRequired:true,reason:"",error:""});}}
   else if(d.ok||d.no){b=getB(d.ok||d.no);if(u.role==="faculty"&&b&&b.fid===u.fid&&b.status==="pending"){var yes=!!d.ok;decide(b.id,yes?"confirmed":"declined");toast(yes?"Consultation confirmed":"Request declined");}}
   else if(d.appr||d.keep){b=getB(d.appr||d.keep);if(u.role==="faculty"&&b&&b.fid===u.fid&&b.req){resolveReq(b.id,!!d.appr);}}
   else if(d.clrf&&u.role==="admin"){var K={bookings:{as:"all",af:"all",brf:"all",bpf:"all",q:""},log:{lq:"",lrf:"all",lpf:"all"},users:{uq:"",urf:"all",upf:"all"}}[d.clrf];if(K){Object.keys(K).forEach(function(k){st[k]=K[k];});var pageKey={bookings:"allBookings",log:"activityLog",users:"accounts"}[d.clrf];if(pageKey)st.pages[pageKey]=1;render();}}
