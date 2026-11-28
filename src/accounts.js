@@ -183,7 +183,7 @@ function mapImportTable(table) {
 
   const missing = ['id', 'name', 'email'].filter((field) => indexes[field] < 0);
   if (missing.length) {
-    throw httpError(400, 'The import file must include id, name, and email columns. Download the example format.');
+    throw httpError(400, `Missing required column${missing.length === 1 ? '' : 's'}: ${missing.join(', ')}. The import file must include id, name, and email columns. Download the example format.`);
   }
 
   const rows = [];

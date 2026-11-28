@@ -695,15 +695,23 @@ function impPanel(){
   h+='<div class="drop" id="dz"><p><b>Drop a file here</b></p><p class="sub">or</p><label class="btn sm ghost" for="fi" style="margin:0;display:inline-block;cursor:pointer">Choose a file</label><input type="file" id="fi" hidden accept=".csv,.tsv,.txt,.json,.xlsx,.xls"></div>';
   h+='<details><summary>Example CSV</summary><pre class="mono">id,name,email,role,program,subject\n2024-0201,Ana Reyes,an.reyes@my.cspc.edu.ph,student,BS Information Technology,\n2024-0202,Mark Dela Cruz,ma.delacruz@my.cspc.edu.ph,student,BS Computer Science,\nF-1011,Prof. Lea Cruz,le.cruz@my.cspc.edu.ph,faculty,IT Instructor,Operating Systems; Computer Architecture</pre></details>';
   if(s){
-    if(s.err)h+='<p class="err" role="alert">'+esc(s.name)+': '+esc(s.err)+'</p><div class="acts"><button class="btn ghost" id="impclr">Clear</button></div>';
+    if(s.err)h+='<div class="import-summary import-summary-error" role="alert"><b>Could not preview '+esc(s.name)+'.</b><div>'+esc(s.err)+'</div></div><div class="acts"><button class="btn ghost" id="impclr">Clear</button></div>';
     else if(s.loading)h+='<p class="sub" style="margin:12px 0 6px">Checking <b>'+esc(s.name)+'</b> against the existing accounts…</p>';
     else{
       var ok=typeof s.valid==="number"?s.valid:(s.rows||[]).filter(function(r){return r.valid;}).length;
       var bad=typeof s.invalid==="number"?s.invalid:(s.rows||[]).length-ok;
-      var importHeaders=["ID number","Name","Email"];
+      var importHeaders=["Row","ID number","Name","Email"];
       if(s.hasRoleColumn)importHeaders.push("Role");
       importHeaders.push("Program or position","Subject","Check");
-      h+='<p style="margin:12px 0 6px"><b>'+esc(s.name)+'</b>: '+ok+' ready, '+bad+' with problems.</p>'+tbl(importHeaders,(s.rows||[]).map(function(r){var cells=['<span class="mono">'+esc(r.id)+'</span>',esc(r.name),esc(r.email)];if(s.hasRoleColumn)cells.push(ROLE[r.declaredRole||r.role]||"—");cells.push(esc(r.unit),r.subj?esc(r.subj):"—",r.valid?"Ready":'<span style="color:var(--bad)">'+esc(r.err||"Check this row.")+'</span>');return cells;}),"No data rows found.",null,"importPreview");
+      var importRows=(s.rows||[]).map(function(r){
+        var reasons=Array.isArray(r.errors)&&r.errors.length?r.errors:(r.err?[r.err]:[]);
+        var check=r.valid?"Ready":'<span class="import-row-error">'+esc(reasons.length?reasons.join(" "):"Check this row.")+'</span>';
+        var cells=["<span class=\"mono\">"+esc(r.rowNumber||"—")+"</span>",'<span class="mono">'+esc(r.id)+'</span>',esc(r.name),esc(r.email)];
+        if(s.hasRoleColumn)cells.push(ROLE[r.declaredRole||r.role]||"—");
+        cells.push(esc(r.unit),r.subj?esc(r.subj):"—",check);
+        return cells;
+      });
+      h+='<div class="import-summary'+(bad?' import-summary-error':'')+'" role="'+(bad?'alert':'status')+'"><b>'+esc(s.name)+': '+ok+' ready, '+bad+' with problems.</b>'+(bad?'<div>Review the row numbers and highlighted validation messages below. Only ready rows will be imported.</div>':'<div>All rows passed validation and are ready to import.</div>')+'</div>'+tbl(importHeaders,importRows,"No data rows found.",null,"importPreview");
       h+='<div class="acts">'+(ok?'<button class="btn" id="impgo"'+(s.busy?' disabled':'')+'>'+(s.busy?"Importing…":"Import "+ok+" account"+(ok>1?"s":""))+'</button>':"")+'<button class="btn ghost" id="impclr">Clear</button></div>';
       h+='<p class="hint">The file is checked against SQLite for duplicate IDs, duplicate emails, role mismatches and invalid program values. Only valid rows are imported.</p>';
     }

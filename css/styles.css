@@ -486,6 +486,9 @@ body.nav-hidden .nb{transform:translateY(-115%);box-shadow:none}
 .fclr{flex:none;margin-bottom:2px}
 .fwide{grid-column:1/-1}
 .hint{margin:6px 0 0;color:var(--mute);font-size:.82rem}
+.import-summary{margin:12px 0 6px;padding:10px 12px;border:1px solid var(--line);border-left:4px solid var(--ok);border-radius:8px;background:var(--hl)}
+.import-summary-error{border-left-color:var(--bad)}
+.import-row-error{display:block;padding:4px 8px;border-left:3px solid var(--bad);border-radius:4px;background:var(--hl);color:var(--bad);font-weight:600}
 button.nrow{width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--line);border-radius:0;color:var(--ink);font:inherit;cursor:pointer;transition:background .2s}
 button.nrow:hover{background:var(--hl)}
 button.nrow:last-child{border-bottom:0}
