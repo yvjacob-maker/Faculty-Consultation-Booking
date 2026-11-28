@@ -127,7 +127,7 @@ function themeBtn(){var d=theme()==="dark";return '<button type="button" class="
 function themeSwitch(){var d=theme()==="dark";return '<button type="button" class="tsw" role="switch" aria-checked="'+d+'" data-theme-toggle="1" aria-label="Dark mode">'+SUN+'<span class="trk"><span class="knob"></span></span>'+MOON+'</button>';}
 function clocks(){var d=new Date(),t=d.toLocaleTimeString(undefined,{hour:"numeric",minute:"2-digit",second:"2-digit"}),dt=d.toLocaleDateString(undefined,{weekday:"long",month:"long",day:"numeric",year:"numeric"});document.querySelectorAll("[data-ct]").forEach(function(n){n.textContent=t;});document.querySelectorAll("[data-cd]").forEach(function(n){n.textContent=dt;});}
 
-var st={showLogin:false,brf:"all",bpf:"all",lq:"",lrf:"all",lpf:"all",uq:"",urf:"all",upf:"all",pages:{},aform:null,pwlist:null,pwpop:null,pwfocus:false,emailAcct:null,emailFocus:false,confirm:null,confirmFocus:false,lrole:"student",lpw:"",lid:"",lerr:"",user:null,view:"",nf:"",crashed:false,mustChange:false,fac:null,date:null,time:null,mode:"face",form:{em:"",cn:CONCERNS[0],nt:"",rs:""},err:"",notice:"",ff:"pending",as:"all",af:"all",q:"",cb:null,rb:null,rdate:null,rtime:null,imp:null,impRole:"student",impSeq:0,mail:null,mailBusy:false,aerr:"",perr:"",pok:""};
+var st={showLogin:false,brf:"all",bpf:"all",lq:"",lrf:"all",lpf:"all",uq:"",urf:"all",upf:"all",pages:{},aform:null,accountBusy:false,messageBusy:false,bookingBusy:false,pwlist:null,pwpop:null,pwfocus:false,emailAcct:null,emailFocus:false,confirm:null,confirmFocus:false,lrole:"student",lpw:"",lid:"",lerr:"",user:null,view:"",nf:"",crashed:false,mustChange:false,fac:null,date:null,time:null,mode:"face",form:{em:"",cn:CONCERNS[0],nt:"",rs:""},err:"",notice:"",ff:"pending",as:"all",af:"all",q:"",cb:null,rb:null,rdate:null,rtime:null,imp:null,impRole:"student",impSeq:0,mail:null,mailBusy:false,aerr:"",perr:"",pok:""};
 function logEv(a,d,who){who=who||st.user;logs.push({t:new Date().toISOString(),u:who?who.name:"Unknown",ro:who?who.role:"none",a:a,d:d||"",uid:(who&&who.id)?who.id:""});saveAll();}
 function notify(to,text,kind,bid){if(!to)return;notifs.push({id:rid("n"),to:to,t:new Date().toISOString(),kind:kind,text:text,bid:bid||"",read:false});put(NKEY,notifs.slice(-500));}
 function getB(id){return bookings.filter(function(b){return b.id===id;})[0];}
@@ -254,7 +254,7 @@ function vBook(){
   Object.keys(MODES).forEach(function(k){h+='<button class="fac" data-m="'+k+'" aria-pressed="'+(st.mode===k)+'"><b>'+MODES[k]+'</b><small>'+({chat:"Talk through the portal Messages page",online:"Join the faculty member’s Google Meet",face:"Meet at the faculty member’s room"})[k]+'</small></button>';});
   h+='</div><label for="sj">Subject or course</label><select id="sj" data-k="sj"'+(f?"":" disabled")+'>'+(f?f.subjects.map(function(t){return "<option"+(t===sj?" selected":"")+">"+esc(t)+"</option>";}).join(""):"<option>Choose a faculty member first</option>")+'</select>';
   h+='<label for="cn">Concern or reason for consultation</label><select id="cn" data-k="cn">'+CONCERNS.map(function(t){return "<option"+(t===F.cn?" selected":"")+">"+esc(t)+"</option>";}).join("")+'</select><label for="nt">What would you like to discuss?</label><textarea id="nt" data-k="nt" rows="3">'+esc(F.nt)+'</textarea></div></div>';
-  h+='<aside class="panel"><h2>Request summary</h2><dl class="sum"><dt>Faculty member</dt><dd>'+(f?esc(f.name)+'<br><span class="sub">'+esc(f.pos)+'</span>':"Not selected")+'</dd><dt>Subject or course</dt><dd>'+(f?esc(sj):"Not selected")+'</dd><dt>Date</dt><dd>'+(st.date?esc(nice(st.date)):"Not selected")+'</dd><dt>Time</dt><dd>'+(st.time?t12(st.time):"Not selected")+'</dd><dt>Type</dt><dd>'+MODES[st.mode]+'</dd><dt>Location</dt><dd>'+(st.mode==="face"?(f?esc(f.room):"—"):st.mode==="chat"?"Portal Messages":"Google Meet")+'</dd></dl><p class="err" id="err" role="alert">'+esc(st.err)+'</p><button class="btn full" id="go" style="margin-top:6px">Submit request</button></aside></div>';
+  h+='<aside class="panel"><h2>Request summary</h2><dl class="sum"><dt>Faculty member</dt><dd>'+(f?esc(f.name)+'<br><span class="sub">'+esc(f.pos)+'</span>':"Not selected")+'</dd><dt>Subject or course</dt><dd>'+(f?esc(sj):"Not selected")+'</dd><dt>Date</dt><dd>'+(st.date?esc(nice(st.date)):"Not selected")+'</dd><dt>Time</dt><dd>'+(st.time?t12(st.time):"Not selected")+'</dd><dt>Type</dt><dd>'+MODES[st.mode]+'</dd><dt>Location</dt><dd>'+(st.mode==="face"?(f?esc(f.room):"—"):st.mode==="chat"?"Portal Messages":"Google Meet")+'</dd></dl><p class="err" id="err" role="alert">'+esc(st.err)+'</p><button class="btn full" id="go" style="margin-top:6px"'+(st.bookingBusy?" disabled":"")+'>'+(st.bookingBusy?"Submitting…":"Submit request")+'</button></aside></div>';
   return h;
 }
 function vMine(){
@@ -375,7 +375,7 @@ function vChat(){
   }
   h+='<div class="msgs" id="msgs">'+(cur.ms.length?cur.ms.map(function(m){return '<div class="bub'+(m.uid===u.id?" me":"")+'"><span class="who">'+esc(m.name)+'</span>'+msgBody(m)+'<span class="when">'+ts(m.t)+'</span></div>';}).join(""):'<p class="empty">No messages yet. Say hello.</p>')+'</div>';
   if(pend.length)h+='<div class="apend" aria-label="Files ready to send">'+pend.map(function(a,i){return '<div class="apitem">'+(a.kind==="video"?'<video src="'+a.preview+'" muted></video>':(a.kind==="file"?'<span class="apfile">'+FILEICON+'</span>':'<img src="'+a.preview+'" alt="">'))+'<span class="apname" title="'+esc(a.name)+'">'+esc(a.name)+'</span><button type="button" class="apx" data-rmatt="'+i+'" aria-label="Remove '+esc(a.name)+'">×</button></div>';}).join("")+'</div>';
-  h+='<form id="cf" class="cform" novalidate><label class="attbtn'+(closed?" off":"")+'" title="Attach a photo, video, or file" aria-label="Attach a photo, video, or file">'+CLIP+'<input id="cfile" type="file" accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.rtf,.odt,.ods,.odp,.md,.epub,.zip,.rar,.7z,.tar,.gz,.json,.xml,.sql,.py,.java,.c,.h,.cpp,.cs,.php,.js,.ts,.jsx,.tsx,.css,.tif,.tiff" multiple'+(closed?" disabled":"")+'></label><input id="cm" maxlength="500" aria-label="Message" placeholder="'+(closed?"This booking is closed":(pend.length?"Add a caption (optional)":"Write a message"))+'" autocomplete="off"'+(closed?" disabled":"")+'><button class="btn" type="submit"'+(closed?" disabled":"")+'>Send</button></form></div></div>';
+  h+='<form id="cf" class="cform" novalidate><label class="attbtn'+(closed?" off":"")+'" title="Attach a photo, video, or file" aria-label="Attach a photo, video, or file">'+CLIP+'<input id="cfile" type="file" accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.rtf,.odt,.ods,.odp,.md,.epub,.zip,.rar,.7z,.tar,.gz,.json,.xml,.sql,.py,.java,.c,.h,.cpp,.cs,.php,.js,.ts,.jsx,.tsx,.css,.tif,.tiff" multiple'+(closed?" disabled":"")+'></label><input id="cm" maxlength="500" aria-label="Message" placeholder="'+(closed?"This booking is closed":(pend.length?"Add a caption (optional)":"Write a message"))+'" autocomplete="off"'+(closed?" disabled":"")+'><button class="btn" type="submit"'+(closed||st.messageBusy?" disabled":"")+'>'+(st.messageBusy?"Sending…":"Send")+'</button></form></div></div>';
   reads[u.id+"|"+b.id]=cur.ms.length;put(RKEY,reads);
   return h;
 }
@@ -699,6 +699,7 @@ function impPanel(){
   return h+'</div>';
 }
 async function addAcct(f){
+  if(st.accountBusy)return;
   var e=f.elements,nm=e.aname.value.trim(),ro=e.arole.value,un=e.aunit.value.trim(),sj=e.asub.value.trim(),em=e.aemail.value.trim(),m="";
   if(st.user.role!=="admin")return;
   if(ro!=="student"&&ro!=="faculty")m="Only Student or Faculty accounts can be created from this form.";
@@ -707,19 +708,21 @@ async function addAcct(f){
   else if(ro==="faculty"&&!sj)m="Enter the subject or course this faculty member handles.";
   st.aerr=m;
   if(m){st.aform={aname:nm,arole:ro,aunit:un,asub:sj,aemail:em};render();return;}
+  st.accountBusy=true;
   var btn=f.querySelector('button[type="submit"]');if(btn){btn.disabled=true;btn.textContent="Generating account…";}
   try{
     var d=await reqJSON("/api/accounts",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({full_name:nm,email:em,role:ro,program:un,subject:sj})});
     mergeServerAccount(d.account);
     saveU();saveF();
     logEv("Account created",d.account.id+" ("+ROLE[ro]+") - temporary password email queued");
-    st.aerr="";st.aform=null;
+    st.accountBusy=false;st.aerr="";st.aform=null;
     st.pwlist=[{id:d.account.id,name:d.account.name,email:d.account.email,pw:d.account.password}];
     render();
     toast("Account created. User ID and temporary password emailed to "+em+".");
     try{window.scrollTo({top:0,behavior:"smooth"});}catch(x){}
     refreshMail(true);setTimeout(function(){refreshMail(true);},2500);
   }catch(err){
+    st.accountBusy=false;
     st.aerr=err.message||"The account could not be created.";
     st.aform={aname:nm,arole:ro,aunit:un,asub:sj,aemail:em};
     render();
@@ -734,7 +737,7 @@ function vUsers(){
     return true;
   });
   var h='<h1>Accounts</h1><p class="lead">Accounts are issued by the CCS Admin Office. Import many at once, or add one at a time. New accounts receive a temporary password by email and must change it on first sign-in. Disabling an account blocks sign-in.</p>'+pwPanel()+impPanel()+mailPanel();
-  h+='<form id="af" class="panel" novalidate><h2>Add one account</h2><div class="fgrid"><div><label for="nn">Full name</label><input id="nn" name="aname" value="'+esc(A.aname)+'"></div><div><label for="nr">Role</label><select id="nr" name="arole">'+[["student","Student"],["faculty","Faculty"]].map(function(o){return '<option value="'+o[0]+'"'+(A.arole===o[0]?" selected":"")+'>'+o[1]+'</option>';}).join("")+'</select></div><div><label for="nu">Program</label><input id="nu" name="aunit" list="proglist" value="'+esc(A.aunit)+'"><datalist id="proglist">'+PROGRAMS.map(function(x){return '<option value="'+esc(x)+'">';}).join("")+'</datalist></div><div><label for="ne">Email address</label><input id="ne" name="aemail" type="email" autocomplete="email" title="The system generates the User ID and a temporary password and emails them here. The user must change the password on first login." value="'+esc(A.aemail)+'"></div><div class="fwide" id="subwrap"'+(isF?"":" hidden")+'><label for="ns">Subjects</label><input id="ns" name="asub" placeholder="e.g. Networking; Computer Networks" value="'+esc(A.asub)+'"><p class="hint">Faculty only. Separate multiple subjects with a semicolon (;).</p></div></div><p class="err" role="alert">'+esc(st.aerr||"")+'</p><button class="btn" type="submit">Generate User ID &amp; email temporary password</button></form>';
+  h+='<form id="af" class="panel" novalidate><h2>Add one account</h2><div class="fgrid"><div><label for="nn">Full name</label><input id="nn" name="aname" value="'+esc(A.aname)+'"></div><div><label for="nr">Role</label><select id="nr" name="arole">'+[["student","Student"],["faculty","Faculty"]].map(function(o){return '<option value="'+o[0]+'"'+(A.arole===o[0]?" selected":"")+'>'+o[1]+'</option>';}).join("")+'</select></div><div><label for="nu">Program</label><input id="nu" name="aunit" list="proglist" value="'+esc(A.aunit)+'"><datalist id="proglist">'+PROGRAMS.map(function(x){return '<option value="'+esc(x)+'">';}).join("")+'</datalist></div><div><label for="ne">Email address</label><input id="ne" name="aemail" type="email" autocomplete="email" title="The system generates the User ID and a temporary password and emails them here. The user must change the password on first login." value="'+esc(A.aemail)+'"></div><div class="fwide" id="subwrap"'+(isF?"":" hidden")+'><label for="ns">Subjects</label><input id="ns" name="asub" placeholder="e.g. Networking; Computer Networks" value="'+esc(A.asub)+'"><p class="hint">Faculty only. Separate multiple subjects with a semicolon (;).</p></div></div><p class="err" role="alert">'+esc(st.aerr||"")+'</p><button class="btn" type="submit"'+(st.accountBusy?" disabled":"")+'>'+(st.accountBusy?"Generating account…":"Generate User ID &amp; email temporary password")+'</button></form>';
   h+='<h2 style="margin-top:4px">All accounts</h2><p class="sub" style="margin:0 0 10px">'+list.length+' of '+USERS.length+' shown. Accounts marked “Setup pending” are older accounts that must finish an emailed setup link before they can sign in.</p>'+fbar("uq","xuq","ID, name, email, program or subject…",sel("urf",st.urf,ROLEOPTS,"Role")+sel("upf",st.upf,PROGOPTS,"Program"),"users");
   setTimeout(function(){refreshMail(false);},0);
   return h+tbl(["ID number","Name","Role","Program or position","Status","Actions"],list.map(function(u){
@@ -832,7 +835,7 @@ function openConfirm(title,message,label,action,danger,options){
 function confirmHTML(){
   if(!st.confirm)return "";
   var c=st.confirm;
-  return '<div class="ov" data-confirmov="1"><div class="dlg confirmdlg" role="dialog" aria-modal="true" aria-labelledby="confirmtitle" aria-describedby="confirmmessage"><div class="dhd"><h2 id="confirmtitle">'+esc(c.title)+'</h2><button type="button" class="x" data-confirmcancel="1" aria-label="Cancel">×</button></div><p id="confirmmessage" class="confirmmessage">'+esc(c.message)+'</p>'+(c.reasonRequired?'<label for="cancelreason">Reason for cancellation</label><textarea id="cancelreason" data-confirmreason="1" rows="4" required aria-required="true" aria-invalid="'+(c.error?"true":"false")+'">'+esc(c.reason||"")+'</textarea><p id="cancelreasonerr" class="err" role="alert">'+esc(c.error||"")+'</p>':"")+'<div class="dact"><button type="button" class="btn ghost" data-confirmcancel="1">Cancel</button><button type="button" class="btn'+(c.danger?" danger":"")+'" data-confirmyes="1">'+esc(c.label)+'</button></div></div></div>';
+  return '<div class="ov" data-confirmov="1"><div class="dlg confirmdlg" role="dialog" aria-modal="true" aria-labelledby="confirmtitle" aria-describedby="confirmmessage"><div class="dhd"><h2 id="confirmtitle">'+esc(c.title)+'</h2><button type="button" class="x" data-confirmcancel="1" aria-label="Cancel">×</button></div><p id="confirmmessage" class="confirmmessage">'+esc(c.message)+'</p>'+(c.reasonRequired?'<label for="cancelreason">Reason for cancellation</label><textarea id="cancelreason" data-confirmreason="1" rows="4" required aria-required="true" aria-invalid="'+(c.error?"true":"false")+'">'+esc(c.reason||"")+'</textarea><p id="cancelreasonerr" class="err" role="alert">'+esc(c.error||"")+'</p>':"")+'<div class="dact"><button type="button" class="btn ghost" data-confirmcancel="1"'+(c.busy?" disabled":"") +'>Cancel</button><button type="button" class="btn'+(c.danger?" danger":"")+'" data-confirmyes="1"'+(c.busy?" disabled":"")+'>'+(c.busy?(c.reasonRequired?"Cancelling…":"Working…"):esc(c.label))+'</button></div></div></div>';
 }
 function signOut(){
   fetch("/api/logout",{method:"POST"}).catch(function(){});
@@ -870,29 +873,38 @@ function addChatFiles(files){
   if(added)render();
 }
 async function sendMsg(){
+  if(st.messageBusy)return;
   var u=st.user,b=getB(st.cb),i=$("cm"),t=i?i.value.trim():"",files=(st.attachFor===st.cb&&st.attach)?st.attach.slice():[];
   if(!b||!owns(u,b)||!active(b)||(!t&&!files.length))return;
+  st.messageBusy=true;
   var btn=document.querySelector("#cf button[type=submit]");
-  if(files.length&&btn){btn.disabled=true;btn.textContent="Sending…";}
+  if(btn){btn.disabled=true;btn.textContent="Sending…";}
   var made=[];
-  for(var k=0;k<files.length;k++){
-    var a=files[k],fd;
-    try{
-      var r=await fetch("/api/chat-upload",{method:"POST",headers:{"Content-Type":a.file.type||"application/octet-stream","X-File-Name":encodeURIComponent(a.name)},body:a.file});
-      if(!r.ok){var e=null;try{e=await r.json();}catch(x){}throw new Error((e&&e.error)||"Upload failed.");}
-      fd=await r.json();
-    }catch(err){
-      toast("Could not send "+a.name+". "+String(err&&err.message||err));
-      render();var nb=$("cm");if(nb)nb.focus();
-      return;
+  var uploadError="";
+  try{
+    for(var k=0;k<files.length;k++){
+      var a=files[k],fd;
+      try{
+        var r=await fetch("/api/chat-upload",{method:"POST",headers:{"Content-Type":a.file.type||"application/octet-stream","X-File-Name":encodeURIComponent(a.name)},body:a.file});
+        if(!r.ok){var e=null;try{e=await r.json();}catch(x){}throw new Error((e&&e.error)||"Upload failed.");}
+        fd=await r.json();
+      }catch(err){
+        uploadError="Could not send "+a.name+". "+String(err&&err.message||err);
+        break;
+      }
+      made.push({id:rid("m"),bid:b.id,uid:u.id,name:u.name,role:u.role,text:"",t:new Date().toISOString(),media:{url:fd.url,type:fd.type||a.kind,mime:fd.mime||a.file.type,name:fd.name||a.name,size:fd.size||a.file.size}});
     }
-    made.push({id:rid("m"),bid:b.id,uid:u.id,name:u.name,role:u.role,text:"",t:new Date().toISOString(),media:{url:fd.url,type:fd.type||a.kind,mime:fd.mime||a.file.type,name:fd.name||a.name,size:fd.size||a.file.size}});
+    if(!uploadError){
+      made.forEach(function(m){chat.push(m);});
+      if(t)chat.push({id:rid("m"),bid:b.id,uid:u.id,name:u.name,role:u.role,text:t.slice(0,500),t:new Date().toISOString()});
+      put(CKEY,chat.slice(-1000));
+      clearAttach();
+    }
+  }finally{
+    st.messageBusy=false;
+    if(st.view==="chat"&&st.cb===b.id){render();var n=$("cm");if(n)n.focus();}
   }
-  made.forEach(function(m){chat.push(m);});
-  if(t)chat.push({id:rid("m"),bid:b.id,uid:u.id,name:u.name,role:u.role,text:t.slice(0,500),t:new Date().toISOString()});
-  put(CKEY,chat.slice(-1000));
-  clearAttach();
-  render();var n=$("cm");if(n)n.focus();
+  if(uploadError)toast(uploadError);
 }
 async function chPw(f){
   var e=f.elements,cur=e.cur.value,n1=e.n1.value,n2=e.n2.value,m="",forced=!!st.mustChange,pe=pwError(n1);
@@ -1025,11 +1037,14 @@ document.addEventListener("click",function(e){
   if(d.confirmcancel){st.confirm=null;st.confirmFocus=false;render();return;}
   if(d.confirmyes){
     var confirmation=st.confirm,reason="";
+    if(!confirmation||confirmation.busy)return;
     if(confirmation&&confirmation.reasonRequired){
       var reasonField=$("cancelreason");reason=reasonField?reasonField.value.trim():"";
       if(!reason){confirmation.error="Enter a reason for cancelling this booking.";if(reasonField){reasonField.setAttribute("aria-invalid","true");reasonField.focus();}var reasonError=$("cancelreasonerr");if(reasonError)reasonError.textContent=confirmation.error;return;}
     }
-    var action=confirmation&&confirmation.action;st.confirm=null;st.confirmFocus=false;if(action){action(reason);}return;
+    confirmation.busy=true;el.disabled=true;el.textContent=confirmation.reasonRequired?"Cancelling…":"Working…";
+    var action=confirmation.action;st.confirm=null;st.confirmFocus=false;
+    try{if(action)action(reason);}catch(confirmError){confirmation.busy=false;st.confirm=confirmation;render();throw confirmError;}return;
   }
   if(d.out){openConfirm("Sign out","Are you sure you want to sign out of your account?","Sign out",signOut,true);return;}
   if(d.menu){st.menu=(st.menu===d.menu)?"":d.menu;render();return;}
@@ -1065,16 +1080,20 @@ document.addEventListener("click",function(e){
   else if(el.id==="impclr"&&u.role==="admin"){st.imp=null;st.impSeq=(st.impSeq||0)+1;render();}
   else if(el.id==="impgo"&&u.role==="admin"){startImport();}
   else if(el.id==="go"&&u.role==="student"){
+    if(st.bookingBusy)return;
     var F=st.form,em="",msg="";
     if(!st.fac)msg="Choose a faculty member.";
     else if(!st.date||!st.time)msg="Select a date and an open time.";
     else if(taken(st.fac,st.date,st.time))msg="That time was just booked by someone else. Select another time.";
     else if(clash(u.id,st.date,st.time))msg="You already have a consultation at that date and time.";
     if(msg){st.err=msg;var er=$("err");if(er)er.textContent=msg;return;}
-    var nb={id:rid("b"),ref:mkref(st.date),fid:st.fac,date:st.date,time:st.time,sid:u.id,name:u.name,email:em,topic:(fById(st.fac).subjects.indexOf(F.sj)>-1?F.sj:fById(st.fac).subjects[0]),concern:F.cn,note:F.nt.trim(),mode:st.mode,status:"pending",created:new Date().toISOString()};
-    bookings.push(nb);logEv("Booking requested",nb.ref);
-    notify((facUser(nb.fid)||{}).id,"New consultation request from "+u.name+" on "+nice(nb.date)+" at "+t12(nb.time)+" ("+MODES[nb.mode]+").","pending",nb.id);
-    saveAll();var fn=fById(nb.fid).name;resetForm();st.notice="Request sent to "+fn+". Your reference number is "+nb.ref+".";route("mine");
+    st.bookingBusy=true;el.disabled=true;el.textContent="Submitting…";
+    try{
+      var nb={id:rid("b"),ref:mkref(st.date),fid:st.fac,date:st.date,time:st.time,sid:u.id,name:u.name,email:em,topic:(fById(st.fac).subjects.indexOf(F.sj)>-1?F.sj:fById(st.fac).subjects[0]),concern:F.cn,note:F.nt.trim(),mode:st.mode,status:"pending",created:new Date().toISOString()};
+      bookings.push(nb);logEv("Booking requested",nb.ref);
+      notify((facUser(nb.fid)||{}).id,"New consultation request from "+u.name+" on "+nice(nb.date)+" at "+t12(nb.time)+" ("+MODES[nb.mode]+").","pending",nb.id);
+      saveAll();var fn=fById(nb.fid).name;resetForm();st.notice="Request sent to "+fn+". Your reference number is "+nb.ref+".";route("mine");
+    }finally{st.bookingBusy=false;el.disabled=false;el.textContent="Submit request";}
   }
   else if(el.id==="rsub"&&canView("resched")){
     b=getB(st.rb);var msg2="",stu=u.role==="student";
