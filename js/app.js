@@ -51,6 +51,16 @@ function nice(s){return pd(s).toLocaleDateString(undefined,{weekday:"short",mont
 function t12(t){var q=t.split(":"),h=+q[0];return ((h+11)%12+1)+":"+q[1]+(h<12?" AM":" PM");}
 function ts(t){return new Date(t).toLocaleString(undefined,{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"});}
 function esc(s){return String(s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
+function fieldError(id,message){return message?'<p class="err field-error" id="'+id+'-error" role="alert">'+esc(message)+'</p>':"";}
+function fieldAttrs(id,message){return message?' aria-invalid="true" aria-describedby="'+id+'-error"':"";}
+function clearFieldError(input,errors,key){
+  if(!input||!errors||!errors[key])return;
+  delete errors[key];
+  var errorId=input.id+"-error",describedBy=(input.getAttribute("aria-describedby")||"").split(/\s+/).filter(function(id){return id&&id!==errorId;});
+  input.removeAttribute("aria-invalid");
+  if(describedBy.length)input.setAttribute("aria-describedby",describedBy.join(" "));else input.removeAttribute("aria-describedby");
+  var message=$(errorId);if(message)message.remove();
+}
 function active(b){return b.status==="pending"||b.status==="confirmed";}
 function sorted(a){return a.slice().sort(function(x,y){return (x.date+x.time)<(y.date+y.time)?-1:1;});}
 function sortedNewest(a){return a.slice().sort(function(x,y){var xc=x.created?Date.parse(x.created):0,yc=y.created?Date.parse(y.created):0;if(xc!==yc)return yc-xc;return (x.date+x.time)<(y.date+y.time)?1:-1;});}
@@ -127,7 +137,7 @@ function themeBtn(){var d=theme()==="dark";return '<button type="button" class="
 function themeSwitch(){var d=theme()==="dark";return '<button type="button" class="tsw" role="switch" aria-checked="'+d+'" data-theme-toggle="1" aria-label="Dark mode">'+SUN+'<span class="trk"><span class="knob"></span></span>'+MOON+'</button>';}
 function clocks(){var d=new Date(),t=d.toLocaleTimeString(undefined,{hour:"numeric",minute:"2-digit",second:"2-digit"}),dt=d.toLocaleDateString(undefined,{weekday:"long",month:"long",day:"numeric",year:"numeric"});document.querySelectorAll("[data-ct]").forEach(function(n){n.textContent=t;});document.querySelectorAll("[data-cd]").forEach(function(n){n.textContent=dt;});}
 
-var st={showLogin:false,brf:"all",bpf:"all",lq:"",lrf:"all",lpf:"all",uq:"",urf:"all",upf:"all",pages:{},aform:null,accountBusy:false,messageBusy:false,bookingBusy:false,pwlist:null,pwpop:null,pwfocus:false,emailAcct:null,emailFocus:false,confirm:null,confirmFocus:false,lrole:"student",lpw:"",lid:"",lerr:"",user:null,view:"",nf:"",crashed:false,mustChange:false,fac:null,date:null,time:null,mode:"face",form:{em:"",cn:CONCERNS[0],nt:"",rs:""},err:"",notice:"",ff:"pending",as:"all",af:"all",q:"",cb:null,rb:null,rdate:null,rtime:null,imp:null,impRole:"student",impSeq:0,mail:null,mailBusy:false,aerr:"",perr:"",pok:""};
+var st={showLogin:false,brf:"all",bpf:"all",lq:"",lrf:"all",lpf:"all",uq:"",urf:"all",upf:"all",pages:{},aform:null,aerrors:{},accountBusy:false,messageBusy:false,bookingBusy:false,pwlist:null,pwpop:null,pwfocus:false,pwErrors:{},emailAcct:null,emailFocus:false,confirm:null,confirmFocus:false,lrole:"student",lpw:"",lid:"",lerr:"",loginErrors:{},user:null,view:"",nf:"",crashed:false,mustChange:false,fac:null,date:null,time:null,mode:"face",form:{em:"",cn:CONCERNS[0],nt:"",rs:""},err:"",errScope:"",notice:"",ff:"pending",as:"all",af:"all",q:"",cb:null,rb:null,rdate:null,rtime:null,imp:null,impRole:"student",impSeq:0,mail:null,mailBusy:false,aerr:"",perr:"",pok:""};
 function logEv(a,d,who){who=who||st.user;logs.push({t:new Date().toISOString(),u:who?who.name:"Unknown",ro:who?who.role:"none",a:a,d:d||"",uid:(who&&who.id)?who.id:""});saveAll();}
 function notify(to,text,kind,bid){if(!to)return;notifs.push({id:rid("n"),to:to,t:new Date().toISOString(),kind:kind,text:text,bid:bid||"",read:false});put(NKEY,notifs.slice(-500));}
 function getB(id){return bookings.filter(function(b){return b.id===id;})[0];}
@@ -235,7 +245,7 @@ function landingHTML(){
 function loginHTML(){
   var R=[["student","Student"],["faculty","Faculty"],["admin","Administrator"]],ph="";
   var idx=R.map(function(r){return r[0];}).indexOf(st.lrole),lk=lockLeft(),dis=lk>0?" disabled":"";
-  return '<div class="login"><div class="lcard"><section class="lpane"><div class="bgimg" aria-hidden="true"></div><div class="shade" aria-hidden="true"></div><div class="lcontent"><h1>Faculty Consultation Booking</h1><p>Book, confirm and track consultations between students and faculty.</p><p style="margin-top:12px"><b>College of Computer Studies</b><br>Camarines Sur Polytechnic Colleges, Nabua, Cam. Sur</p></div><div class="clockbox"><span class="ct" data-ct></span><span class="cd" data-cd></span></div></section><section class="rpane"><div class="rtools"><button type="button" class="land-back" data-home="1" aria-label="Back to landing page" title="Back to landing page"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h5v-6h4v6h5V9.5"/></svg><span>Home</span></button>'+themeSwitch()+'</div><img class="seal" src="'+IMG_SEAL+'" alt="Camarines Sur Polytechnic Colleges seal"><h2>Sign in</h2><p class="sub" style="margin:0">Select your account type</p><div class="roles" role="group" aria-label="Account type" style="--i:'+(st.rprev!=null?st.rprev:idx)+'" data-i="'+idx+'"><span class="rhl" aria-hidden="true"></span>'+R.map(function(r){return '<button type="button" class="rbtn" data-lr="'+r[0]+'" aria-pressed="'+(st.lrole===r[0])+'">'+r[1]+'</button>';}).join("")+'</div><form id="lf" novalidate><label for="lid">'+ROLE[st.lrole]+' ID number</label><input id="lid" autocomplete="username" placeholder="'+ph+'" value="'+esc(st.lid)+'"'+dis+'><label for="lpw">Password</label><div class="pwwrap"><input id="lpw" type="'+(st.showpw?"text":"password")+'" autocomplete="current-password" value="'+esc(st.lpw||"")+'"'+dis+'><button type="button" class="eye" data-eye="lpw" aria-label="'+(st.showpw?"Hide":"Show")+' password" aria-pressed="'+(!!st.showpw)+'"'+dis+'>'+(st.showpw?EYE:EYEOFF)+'</button></div><p class="authnote">Authorized users only. Sign-in attempts are recorded.</p><p class="err" id="lerr" role="alert">'+esc(lk>0?lockMsg(lk):st.lerr)+'</p><button id="lbtn" class="btn full" type="submit"'+dis+'>Sign in as '+ROLE[st.lrole].toLowerCase()+'</button></form><p class="help">Forgot your password or ID? Contact the CCS Admin Office.</p></section></div></div>';
+  return '<div class="login"><div class="lcard"><section class="lpane"><div class="bgimg" aria-hidden="true"></div><div class="shade" aria-hidden="true"></div><div class="lcontent"><h1>Faculty Consultation Booking</h1><p>Book, confirm and track consultations between students and faculty.</p><p style="margin-top:12px"><b>College of Computer Studies</b><br>Camarines Sur Polytechnic Colleges, Nabua, Cam. Sur</p></div><div class="clockbox"><span class="ct" data-ct></span><span class="cd" data-cd></span></div></section><section class="rpane"><div class="rtools"><button type="button" class="land-back" data-home="1" aria-label="Back to landing page" title="Back to landing page"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h5v-6h4v6h5V9.5"/></svg><span>Home</span></button>'+themeSwitch()+'</div><img class="seal" src="'+IMG_SEAL+'" alt="Camarines Sur Polytechnic Colleges seal"><h2>Sign in</h2><p class="sub" style="margin:0">Select your account type</p><div class="roles" role="group" aria-label="Account type" style="--i:'+(st.rprev!=null?st.rprev:idx)+'" data-i="'+idx+'"><span class="rhl" aria-hidden="true"></span>'+R.map(function(r){return '<button type="button" class="rbtn" data-lr="'+r[0]+'" aria-pressed="'+(st.lrole===r[0])+'">'+r[1]+'</button>';}).join("")+'</div><form id="lf" novalidate><label for="lid">'+ROLE[st.lrole]+' ID number</label><input id="lid" autocomplete="username" placeholder="'+ph+'" value="'+esc(st.lid)+'"'+fieldAttrs("lid",(st.loginErrors||{}).lid)+dis+'>'+fieldError("lid",(st.loginErrors||{}).lid)+'<label for="lpw">Password</label><div class="pwwrap"><input id="lpw" type="'+(st.showpw?"text":"password")+'" autocomplete="current-password" value="'+esc(st.lpw||"")+'"'+fieldAttrs("lpw",(st.loginErrors||{}).lpw)+dis+'><button type="button" class="eye" data-eye="lpw" aria-label="'+(st.showpw?"Hide":"Show")+' password" aria-pressed="'+(!!st.showpw)+'"'+dis+'>'+(st.showpw?EYE:EYEOFF)+'</button></div>'+fieldError("lpw",(st.loginErrors||{}).lpw)+'<p class="authnote">Authorized users only. Sign-in attempts are recorded.</p><p class="err" id="lerr" role="alert">'+esc(lk>0?lockMsg(lk):st.lerr)+'</p><button id="lbtn" class="btn full" type="submit"'+dis+'>Sign in as '+ROLE[st.lrole].toLowerCase()+'</button></form><p class="help">Forgot your password or ID? Contact the CCS Admin Office.</p></section></div></div>';
 }
 
 function vBook(){
@@ -244,17 +254,17 @@ function vBook(){
   var h='<h1>Book a consultation</h1><p class="lead">Booking as '+esc(u.name)+' ('+esc(u.id)+'), '+esc(u.unit)+'. College of Computer Studies faculty only.</p><div class="two"><div>';
   h+='<div class="panel"><p class="step"><span>Step 1</span>Choose a faculty member</p><div class="facs">';
   FAC.forEach(function(x){h+='<button class="fac" data-f="'+x.id+'" aria-pressed="'+(x.id===st.fac)+'"><b>'+esc(x.name)+'</b><small>'+esc(x.pos)+'</small><small>'+esc(subjText(x))+'</small><small>'+esc(x.room)+', '+esc(x.days.slice().sort().map(function(d){return WD[d];}).join(", "))+'</small></button>';});
-  h+='</div></div><div class="panel"><p class="step"><span>Step 2</span>Select a date and time</p>';
+  h+='</div>'+fieldError("booking-faculty",st.errScope==="booking-faculty"?st.err:"")+'</div><div class="panel"><p class="step"><span>Step 2</span>Select a date and time</p>';
   if(!f)h+='<p class="sub">Choose a faculty member to see open times.</p>';
   else{
     h+=dayBtns(f,st.date,"data-d");
     h+=st.date?slotBtns(f,st.date,st.time,"data-t","",u.id)+'<p class="sub" style="margin:10px 0 0">Crossed-out times are already booked or overlap another consultation of yours.</p>':'<p class="sub">Select a date to see available times.</p>';
   }
-  h+='</div><div class="panel"><p class="step"><span>Step 3</span>Consultation type and details</p><div class="modes">';
+  h+=fieldError("booking-time",st.errScope==="booking-time"?st.err:"")+'</div><div class="panel"><p class="step"><span>Step 3</span>Consultation type and details</p><div class="modes">';
   Object.keys(MODES).forEach(function(k){h+='<button class="fac" data-m="'+k+'" aria-pressed="'+(st.mode===k)+'"><b>'+MODES[k]+'</b><small>'+({chat:"Talk through the portal Messages page",online:"Join the faculty member’s Google Meet",face:"Meet at the faculty member’s room"})[k]+'</small></button>';});
   h+='</div><label for="sj">Subject or course</label><select id="sj" data-k="sj"'+(f?"":" disabled")+'>'+(f?f.subjects.map(function(t){return "<option"+(t===sj?" selected":"")+">"+esc(t)+"</option>";}).join(""):"<option>Choose a faculty member first</option>")+'</select>';
   h+='<label for="cn">Concern or reason for consultation</label><select id="cn" data-k="cn">'+CONCERNS.map(function(t){return "<option"+(t===F.cn?" selected":"")+">"+esc(t)+"</option>";}).join("")+'</select><label for="nt">What would you like to discuss?</label><textarea id="nt" data-k="nt" rows="3">'+esc(F.nt)+'</textarea></div></div>';
-  h+='<aside class="panel"><h2>Request summary</h2><dl class="sum"><dt>Faculty member</dt><dd>'+(f?esc(f.name)+'<br><span class="sub">'+esc(f.pos)+'</span>':"Not selected")+'</dd><dt>Subject or course</dt><dd>'+(f?esc(sj):"Not selected")+'</dd><dt>Date</dt><dd>'+(st.date?esc(nice(st.date)):"Not selected")+'</dd><dt>Time</dt><dd>'+(st.time?t12(st.time):"Not selected")+'</dd><dt>Type</dt><dd>'+MODES[st.mode]+'</dd><dt>Location</dt><dd>'+(st.mode==="face"?(f?esc(f.room):"—"):st.mode==="chat"?"Portal Messages":"Google Meet")+'</dd></dl><p class="err" id="err" role="alert">'+esc(st.err)+'</p><button class="btn full" id="go" style="margin-top:6px"'+(st.bookingBusy?" disabled":"")+'>'+(st.bookingBusy?"Submitting…":"Submit request")+'</button></aside></div>';
+  h+='<aside class="panel"><h2>Request summary</h2><dl class="sum"><dt>Faculty member</dt><dd>'+(f?esc(f.name)+'<br><span class="sub">'+esc(f.pos)+'</span>':"Not selected")+'</dd><dt>Subject or course</dt><dd>'+(f?esc(sj):"Not selected")+'</dd><dt>Date</dt><dd>'+(st.date?esc(nice(st.date)):"Not selected")+'</dd><dt>Time</dt><dd>'+(st.time?t12(st.time):"Not selected")+'</dd><dt>Type</dt><dd>'+MODES[st.mode]+'</dd><dt>Location</dt><dd>'+(st.mode==="face"?(f?esc(f.room):"—"):st.mode==="chat"?"Portal Messages":"Google Meet")+'</dd></dl><button class="btn full" id="go" style="margin-top:6px"'+(st.bookingBusy?" disabled":"")+'>'+(st.bookingBusy?"Submitting…":"Submit request")+'</button></aside></div>';
   return h;
 }
 function vMine(){
@@ -329,8 +339,8 @@ function vResched(){
   if(stu&&b.req)return h+'<div class="panel"><p>You already have a pending change request for '+esc(nice(b.req.date))+' at '+t12(b.req.time)+'.</p><button class="btn" data-v="mine">Back to my bookings</button></div>';
   h+='<div class="two"><div><div class="panel"><p class="step"><span>Current</span>'+esc(nice(b.date))+' at '+t12(b.time)+' with '+esc(stu?f.name:b.name)+'</p><p class="step"><span>New time</span>Select a date and time</p>'+dayBtns(f,st.rdate,"data-rd");
   h+=st.rdate?slotBtns(f,st.rdate,st.rtime,"data-rt",b.id,b.sid)+'<p class="sub" style="margin:10px 0 0">Crossed-out times are not available.</p>':'<p class="sub">Select a date to see times.</p>';
-  h+='</div><div class="panel"><label for="rsn" style="margin-top:0">Reason (optional)</label><textarea id="rsn" data-k="rs" rows="3">'+esc(st.form.rs)+'</textarea></div></div>';
-  h+='<aside class="panel"><h2>Summary</h2><dl class="sum"><dt>New date</dt><dd>'+(st.rdate?esc(nice(st.rdate)):"Not selected")+'</dd><dt>New time</dt><dd>'+(st.rtime?t12(st.rtime):"Not selected")+'</dd></dl><p class="err" id="rerr" role="alert">'+esc(st.err)+'</p><button class="btn full" id="rsub">'+(stu?"Send request":"Reschedule now")+'</button><button class="btn full ghost" data-v="'+back+'">Back</button></aside></div>';
+  h+=fieldError("reschedule-time",st.errScope==="reschedule-time"?st.err:"")+'</div><div class="panel"><label for="rsn" style="margin-top:0">Reason (optional)</label><textarea id="rsn" data-k="rs" rows="3">'+esc(st.form.rs)+'</textarea></div></div>';
+  h+='<aside class="panel"><h2>Summary</h2><dl class="sum"><dt>New date</dt><dd>'+(st.rdate?esc(nice(st.rdate)):"Not selected")+'</dd><dt>New time</dt><dd>'+(st.rtime?t12(st.rtime):"Not selected")+'</dd></dl><button class="btn full" id="rsub">'+(stu?"Send request":"Reschedule now")+'</button><button class="btn full ghost" data-v="'+back+'">Back</button></aside></div>';
   return h;
 }
 var FILEICON='<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg>';
@@ -441,7 +451,7 @@ function vLog(){
   h+=fbar("lq","xlq","User, action or detail…",sel("lrf",st.lrf,ROLEOPTS,"Role")+sel("lpf",st.lpf,PROGOPTS,"Student program"),"log");
   return h+logTbl(l.slice(0,200),"No activity matches the current filters. Adjust your search or filters, or use Clear filters above.","activityLog");
 }
-function pwField(id,name,label,ac){return '<label for="'+id+'">'+label+'</label><div class="pwwrap"><input id="'+id+'" name="'+name+'" type="password" autocomplete="'+ac+'"><button type="button" class="eye" data-eye="'+id+'" aria-label="Show password" aria-pressed="false">'+EYEOFF+'</button></div>';}
+function pwField(id,name,label,ac){var message=(st.pwErrors||{})[name];return '<label for="'+id+'">'+label+'</label><div class="pwwrap"><input id="'+id+'" name="'+name+'" type="password" autocomplete="'+ac+'"'+fieldAttrs(id,message)+'><button type="button" class="eye" data-eye="'+id+'" aria-label="Show password" aria-pressed="false">'+EYEOFF+'</button></div>'+fieldError(id,message);}
 function vPw(){
   var back=(st.back&&VF[st.back]&&st.back!=="pw"&&canView(st.back))?st.back:VIEWS[st.user.role][0][0];
   return '<div class="pwstage"><form id="pf" class="panel pwcard'+(st.enter?" pop":"")+(st.perr?" shake":"")+'" novalidate><div class="pwicon">'+ic("pw",30)+'</div><h2>Change password</h2><p class="sub" style="margin:0 0 6px">Use 8-72 characters with uppercase, lowercase, number, and symbol.</p>'+(st.pok?'<div class="notice" role="status">'+esc(st.pok)+'</div>':'')+pwField("pc","cur","Current password","current-password")+pwField("p1","n1","New password","new-password")+'<div id="pwcheck">'+pwReqHTML("","")+'</div>'+pwField("p2","n2","Confirm new password","new-password")+'<p class="err" role="alert">'+esc(st.perr||"")+'</p><div class="pwbtns"><button class="btn" type="submit">Update password</button><button class="btn ghost" type="button" data-v="'+back+'">Cancel</button></div></form></div>';
@@ -635,7 +645,7 @@ function pwPopupHTML(){
 function emailPopupHTML(){
   var a=st.emailAcct;if(!a)return "";
   var title=a.email?"Edit account email":"Add account email";
-  return '<div class="ov" data-emov="1"><div class="dlg emaildlg" role="dialog" aria-modal="true" aria-labelledby="emailtitle"><div class="dhd"><div><h2 id="emailtitle" style="margin:0">'+title+'</h2><span class="mono sub">'+esc(a.id)+'</span></div><button type="button" class="x" data-closeemail="1" aria-label="Close">×</button></div><form id="ef" novalidate><label for="eemail" style="margin-top:14px">Email address</label><input id="eemail" name="email" type="email" autocomplete="email" value="'+esc(a.email)+'"'+(a.busy?" disabled":"")+'><p class="hint">Account emails and temporary passwords will be sent to this address. If the account still needs its first password change, saving will also email a new temporary password.</p><p class="err" role="alert">'+esc(a.err||"")+'</p><div class="dact"><button type="button" class="btn ghost" data-closeemail="1">Cancel</button><button type="submit" class="btn"'+(a.busy?" disabled":"")+'>'+(a.busy?"Saving…":"Save email")+'</button></div></form></div></div>';
+  return '<div class="ov" data-emov="1"><div class="dlg emaildlg" role="dialog" aria-modal="true" aria-labelledby="emailtitle"><div class="dhd"><div><h2 id="emailtitle" style="margin:0">'+title+'</h2><span class="mono sub">'+esc(a.id)+'</span></div><button type="button" class="x" data-closeemail="1" aria-label="Close">×</button></div><form id="ef" novalidate><label for="eemail" style="margin-top:14px">Email address</label><input id="eemail" name="email" type="email" autocomplete="email" value="'+esc(a.email)+'" aria-describedby="emailhint'+(a.invalid?' eemail-error':'')+'"'+(a.invalid?' aria-invalid="true"':'')+(a.busy?" disabled":"")+'>'+fieldError("eemail",a.invalid?a.err:"")+'<p class="hint" id="emailhint">Account emails and temporary passwords will be sent to this address. If the account still needs its first password change, saving will also email a new temporary password.</p>'+(a.err&&!a.invalid?'<p class="err" id="emailformerr" role="alert">'+esc(a.err)+'</p>':"")+'<div class="dact"><button type="button" class="btn ghost" data-closeemail="1">Cancel</button><button type="submit" class="btn"'+(a.busy?" disabled":"")+'>'+(a.busy?"Saving…":"Save email")+'</button></div></form></div></div>';
 }
 function resetAcct(id){
   var tu=uById(id);
@@ -659,8 +669,8 @@ async function saveAcctEmail(f){
   var a=st.emailAcct;
   if(!a||a.busy)return;
   var em=(f.elements.email.value||"").trim();
-  a.email=em;a.err="";
-  if(!emailOk(em)){a.err="Enter a valid email address.";st.emailFocus=true;render();return;}
+  a.email=em;a.err="";a.invalid=false;
+  if(!emailOk(em)){a.err="Enter a valid email address.";a.invalid=true;st.emailFocus=true;render();return;}
   a.busy=true;render();
   try{
     var d=await reqJSON("/api/admin/accounts/"+encodeURIComponent(a.id)+"/email",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email:em})});
@@ -673,7 +683,7 @@ async function saveAcctEmail(f){
     if(sendTemp){toast("Email saved. Sending a new temporary password…");resetAcct(a.id);}
     else{toast("Email saved for "+a.id+".");refreshMail(true);}
   }catch(err){
-    a.busy=false;a.err=err.message||"The email could not be saved.";st.emailFocus=true;render();
+    a.busy=false;a.err=err.message||"The email could not be saved.";a.invalid=false;st.emailFocus=true;render();
   }
 }
 function pwPanel(){
@@ -702,14 +712,19 @@ function impPanel(){
 }
 async function addAcct(f){
   if(st.accountBusy)return;
-  var e=f.elements,nm=e.aname.value.trim(),ro=e.arole.value,un=e.aunit.value.trim(),sj=e.asub.value.trim(),em=e.aemail.value.trim(),m="";
+  var e=f.elements,nm=e.aname.value.trim(),ro=e.arole.value,un=e.aunit.value.trim(),sj=e.asub.value.trim(),em=e.aemail.value.trim(),m="",errors={};
   if(st.user.role!=="admin")return;
   if(ro!=="student"&&ro!=="faculty")m="Only Student or Faculty accounts can be created from this form.";
-  else if(!nm||!un||!em)m="Enter the full name, program and email address.";
-  else if(!emailOk(em))m="Enter a valid email address.";
-  else if(ro==="faculty"&&!sj)m="Enter the subject or course this faculty member handles.";
+  else{
+    if(!nm)errors.aname="Enter the full name.";
+    if(!un)errors.aunit="Enter the program or position.";
+    if(!em)errors.aemail="Enter an email address.";
+    else if(!emailOk(em))errors.aemail="Enter a valid email address.";
+    if(ro==="faculty"&&!sj)errors.asub="Enter at least one subject or course.";
+  }
+  st.aerrors=errors;
   st.aerr=m;
-  if(m){st.aform={aname:nm,arole:ro,aunit:un,asub:sj,aemail:em};render();return;}
+  if(m||Object.keys(errors).length){st.aform={aname:nm,arole:ro,aunit:un,asub:sj,aemail:em};render();return;}
   st.accountBusy=true;
   var btn=f.querySelector('button[type="submit"]');if(btn){btn.disabled=true;btn.textContent="Generating account…";}
   try{
@@ -717,7 +732,7 @@ async function addAcct(f){
     mergeServerAccount(d.account);
     saveU();saveF();
     logEv("Account created",d.account.id+" ("+ROLE[ro]+") - temporary password email queued");
-    st.accountBusy=false;st.aerr="";st.aform=null;
+    st.accountBusy=false;st.aerr="";st.aerrors={};st.aform=null;
     st.pwlist=[{id:d.account.id,name:d.account.name,email:d.account.email,pw:d.account.password}];
     render();
     toast("Account created. User ID and temporary password emailed to "+em+".");
@@ -726,6 +741,7 @@ async function addAcct(f){
   }catch(err){
     st.accountBusy=false;
     st.aerr=err.message||"The account could not be created.";
+    st.aerrors={};
     st.aform={aname:nm,arole:ro,aunit:un,asub:sj,aemail:em};
     render();
   }
@@ -739,7 +755,8 @@ function vUsers(){
     return true;
   });
   var h='<h1>Accounts</h1><p class="lead">Accounts are issued by the CCS Admin Office. Import many at once, or add one at a time. New accounts receive a temporary password by email and must change it on first sign-in. Disabling an account blocks sign-in.</p>'+pwPanel()+impPanel()+mailPanel();
-  h+='<form id="af" class="panel" novalidate><h2>Add one account</h2><div class="fgrid"><div><label for="nn">Full name</label><input id="nn" name="aname" value="'+esc(A.aname)+'"></div><div><label for="nr">Role</label><select id="nr" name="arole">'+[["student","Student"],["faculty","Faculty"]].map(function(o){return '<option value="'+o[0]+'"'+(A.arole===o[0]?" selected":"")+'>'+o[1]+'</option>';}).join("")+'</select></div><div><label for="nu">Program</label><input id="nu" name="aunit" list="proglist" value="'+esc(A.aunit)+'"><datalist id="proglist">'+PROGRAMS.map(function(x){return '<option value="'+esc(x)+'">';}).join("")+'</datalist></div><div><label for="ne">Email address</label><input id="ne" name="aemail" type="email" autocomplete="email" title="The system generates the User ID and a temporary password and emails them here. The user must change the password on first login." value="'+esc(A.aemail)+'"></div><div class="fwide" id="subwrap"'+(isF?"":" hidden")+'><label for="ns">Subjects</label><input id="ns" name="asub" placeholder="e.g. Networking; Computer Networks" value="'+esc(A.asub)+'"><p class="hint">Faculty only. Separate multiple subjects with a semicolon (;).</p></div></div><p class="err" role="alert">'+esc(st.aerr||"")+'</p><button class="btn" type="submit" title="Enter"'+(st.accountBusy?" disabled":"")+'>'+(st.accountBusy?"Generating account…":"Save")+'</button></form>';
+  var AE=st.aerrors||{};
+  h+='<form id="af" class="panel" novalidate><h2>Add one account</h2><div class="fgrid"><div><label for="nn">Full name</label><input id="nn" name="aname" value="'+esc(A.aname)+'"'+fieldAttrs("nn",AE.aname)+'>'+fieldError("nn",AE.aname)+'</div><div><label for="nr">Role</label><select id="nr" name="arole">'+[["student","Student"],["faculty","Faculty"]].map(function(o){return '<option value="'+o[0]+'"'+(A.arole===o[0]?" selected":"")+'>'+o[1]+'</option>';}).join("")+'</select></div><div><label for="nu">Program</label><input id="nu" name="aunit" list="proglist" value="'+esc(A.aunit)+'"'+fieldAttrs("nu",AE.aunit)+'>'+fieldError("nu",AE.aunit)+'<datalist id="proglist">'+PROGRAMS.map(function(x){return '<option value="'+esc(x)+'">';}).join("")+'</datalist></div><div><label for="ne">Email address</label><input id="ne" name="aemail" type="email" autocomplete="email" title="The system generates the User ID and a temporary password and emails them here. The user must change the password on first login." value="'+esc(A.aemail)+'"'+fieldAttrs("ne",AE.aemail)+'>'+fieldError("ne",AE.aemail)+'</div><div class="fwide" id="subwrap"'+(isF?"":" hidden")+'><label for="ns">Subjects</label><input id="ns" name="asub" placeholder="e.g. Networking; Computer Networks" value="'+esc(A.asub)+'"'+fieldAttrs("ns",AE.asub)+'>'+fieldError("ns",AE.asub)+'<p class="hint">Faculty only. Separate multiple subjects with a semicolon (;).</p></div></div><p class="err" id="aformerr" role="alert">'+esc(st.aerr||"")+'</p><button class="btn" type="submit" title="Enter"'+(st.accountBusy?" disabled":"")+'>'+(st.accountBusy?"Generating account…":"Save")+'</button></form>';
   h+='<h2 style="margin-top:4px">All accounts</h2><p class="sub" style="margin:0 0 10px">'+list.length+' of '+USERS.length+' shown. Accounts marked “Setup pending” are older accounts that must finish an emailed setup link before they can sign in.</p>'+fbar("uq","xuq","ID, name, email, program or subject…",sel("urf",st.urf,ROLEOPTS,"Role")+sel("upf",st.upf,PROGOPTS,"Program"),"users");
   setTimeout(function(){refreshMail(false);},0);
   return h+tbl(["ID number","Name","Role","Program or position","Status","Actions"],list.map(function(u){
@@ -801,14 +818,14 @@ function render(){
   }catch(err){crash(err);}
 }
 function route(v){
-  st.enter=true;st.menu=false;st.detail="";st.pwlist=null;st.pwpop=null;st.pwfocus=false;st.emailAcct=null;st.emailFocus=false;if(v==="pw"&&st.view!=="pw")st.back=st.view;st.err="";st.perr="";st.pok="";st.aerr="";st.aform=null;
+  st.enter=true;st.menu=false;st.detail="";st.pwlist=null;st.pwpop=null;st.pwfocus=false;st.emailAcct=null;st.emailFocus=false;if(v==="pw"&&st.view!=="pw")st.back=st.view;st.err="";st.errScope="";st.perr="";st.pwErrors={};st.pok="";st.aerr="";st.aerrors={};st.aform=null;
   clearAttach();
   if(VF[v]){st.nf="";st.view=v;}else st.nf=v;
   try{history.replaceState(null,"","#/"+v);}catch(x){}
   render();
 }
 function hashRoute(){var m=/^#\/?([\w-]*)/.exec(location.hash||"");return m?m[1]:"";}
-function resetForm(){st.fac=null;st.date=null;st.time=null;st.mode="face";st.err="";st.form={em:"",cn:CONCERNS[0],nt:"",rs:""};st.ff="pending";st.as="all";st.af="all";st.q="";st.brf="all";st.bpf="all";st.lq="";st.lrf="all";st.lpf="all";st.uq="";st.urf="all";st.upf="all";st.pages={};st.aform=null;st.notice="";st.cb=null;st.rb=null;st.rdate=null;st.rtime=null;st.imp=null;st.impSeq=(st.impSeq||0)+1;}
+function resetForm(){st.fac=null;st.date=null;st.time=null;st.mode="face";st.err="";st.errScope="";st.form={em:"",cn:CONCERNS[0],nt:"",rs:""};st.ff="pending";st.as="all";st.af="all";st.q="";st.brf="all";st.bpf="all";st.lq="";st.lrf="all";st.lpf="all";st.uq="";st.urf="all";st.upf="all";st.pages={};st.aform=null;st.aerrors={};st.notice="";st.cb=null;st.rb=null;st.rdate=null;st.rtime=null;st.imp=null;st.impSeq=(st.impSeq||0)+1;}
 
 function decide(id,s){
   var b=getB(id);if(!b)return;b.status=s;
@@ -909,13 +926,13 @@ async function sendMsg(){
   if(uploadError)toast(uploadError);
 }
 async function chPw(f){
-  var e=f.elements,cur=e.cur.value,n1=e.n1.value,n2=e.n2.value,m="",forced=!!st.mustChange,pe=pwError(n1);
-  if(!cur)m="Enter your current password.";
-  else if(pe)m=pe;
-  else if(n1!==n2)m="New passwords do not match.";
-  else if(n1===cur)m="New password must be different from the current one.";
-  st.perr=m;st.pok="";
-  if(m){render();return;}
+  var e=f.elements,cur=e.cur.value,n1=e.n1.value,n2=e.n2.value,forced=!!st.mustChange,pe=pwError(n1),errors={};
+  if(!cur)errors.cur="Enter your current password.";
+  else if(pe)errors.n1=pe;
+  else if(n1!==n2)errors.n2="New passwords do not match.";
+  else if(n1===cur)errors.n1="New password must be different from the current one.";
+  st.pwErrors=errors;st.perr="";st.pok="";
+  if(Object.keys(errors).length){render();var first=errors.cur?"pc":(errors.n1?"p1":"p2"),field=$(first);if(field)field.focus();return;}
   var btn=f.querySelector('button[type="submit"]');if(btn){btn.disabled=true;btn.textContent="Updating…";}
   try{
     await reqJSON("/api/account/password",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({currentPassword:cur,newPassword:n1})});
@@ -937,6 +954,16 @@ async function doLogin(){
   if(lockLeft()>0){render();return;}
   var id=$("lid").value.trim(),pw=$("lpw").value,u=USERS.filter(function(x){return String(x.id).toLowerCase()===id.toLowerCase();})[0];
   st.lid=id;
+  var loginErrors={};
+  if(!id)loginErrors.lid="Enter your ID number.";
+  if(!pw)loginErrors.lpw="Enter your password.";
+  st.loginErrors=loginErrors;
+  if(Object.keys(loginErrors).length){
+    st.lerr="";st.lpw=pw;render();
+    var passwordField=$("lpw");if(passwordField)passwordField.value=pw;
+    var firstField=$(loginErrors.lid?"lid":"lpw");if(firstField)firstField.focus();
+    return;
+  }
   function fail(){
     logEv("Failed sign-in","ID entered: "+(id||"(blank)"),{name:id||"Unknown",role:"none"});
     lock.n=(lock.n||0)+1;
@@ -982,6 +1009,20 @@ document.addEventListener("submit",function(e){
 });
 document.addEventListener("input",function(e){
   var t=e.target,k=t.dataset&&t.dataset.k;if(k){st.form[k]=t.value;if(k==="sj")render();}
+  if(t.id==="lid"||t.id==="lpw"){if(t.id==="lid")st.lid=t.value;else st.lpw=t.value;if(st.loginErrors){clearFieldError(t,st.loginErrors,t.id);st.lerr="";var loginError=$("lerr");if(loginError)loginError.textContent="";}}
+  if(t.form&&t.form.id==="af"&&t.name){
+    if(st.aform)st.aform[t.name]=t.value;
+    clearFieldError(t,st.aerrors,t.name);
+    if(!Object.keys(st.aerrors||{}).length){st.aerr="";var accountError=$("aformerr");if(accountError)accountError.textContent="";}
+  }
+  if(t.id==="eemail"&&st.emailAcct){
+    st.emailAcct.email=t.value;
+    if(st.emailAcct.err){st.emailAcct.err="";st.emailAcct.invalid=false;t.removeAttribute("aria-invalid");t.setAttribute("aria-describedby","emailhint");var emailError=$("eemail-error");if(emailError)emailError.remove();var emailFormError=$("emailformerr");if(emailFormError)emailFormError.remove();}
+  }
+  if(t.form&&t.form.id==="pf"&&st.pwErrors){
+    var pwKey={pc:"cur",p1:"n1",p2:"n2"}[t.id];
+    if(pwKey)clearFieldError(t,st.pwErrors,pwKey);
+  }
   if(t.dataset&&t.dataset.confirmreason&&st.confirm){st.confirm.reason=t.value;st.confirm.error="";t.setAttribute("aria-invalid","false");var cancelError=$("cancelreasonerr");if(cancelError)cancelError.textContent="";}
   if(t.id==="p1"||t.id==="p2"){var pc=$("pwcheck");if(pc){var q1=$("p1"),q2=$("p2");pc.innerHTML=pwReqHTML(q1?q1.value:"",q2?q2.value:"");}}
   if(t.dataset&&t.dataset.q){st[t.dataset.q]=t.value;var pageKey={q:"allBookings",lq:"activityLog",uq:"accounts"}[t.dataset.q];if(pageKey)st.pages[pageKey]=1;render();var qi=$(t.id);if(qi){qi.focus();try{qi.setSelectionRange(qi.value.length,qi.value.length);}catch(x){}}}
@@ -990,7 +1031,7 @@ document.addEventListener("change",function(e){
   var t=e.target,d=t.dataset||{};
   if(t.id==="cfile"){addChatFiles(t.files);t.value="";return;}
   if(t.id==="fi"){handleFile(t.files[0]);t.value="";return;}
-  if(t.id==="nr"){var sw=$("subwrap");if(sw)sw.hidden=(t.value!=="faculty");return;}
+  if(t.id==="nr"){if(st.aform)st.aform.arole=t.value;clearFieldError($("ns"),st.aerrors,"asub");var sw=$("subwrap");if(sw)sw.hidden=(t.value!=="faculty");return;}
   if(d.s){
     st[d.s]=t.value;
     var pageKey={ff:"facultyInbox",as:"allBookings",af:"allBookings",brf:"allBookings",bpf:"allBookings",lrf:"activityLog",lpf:"activityLog",urf:"accounts",upf:"accounts"}[d.s];
@@ -1017,7 +1058,7 @@ document.addEventListener("click",function(e){
   var r=e.target.closest("[data-lr]");
   if(!r)return;
   var li=$("lid");if(li)st.lid=li.value;
-  if(r){st.rprev=["student","faculty","admin"].indexOf(st.lrole);st.lrole=r.dataset.lr;st.lid="";st.lpw="";st.lerr="";}
+  if(r){st.rprev=["student","faculty","admin"].indexOf(st.lrole);st.lrole=r.dataset.lr;st.lid="";st.lpw="";st.lerr="";st.loginErrors={};}
   render();
 });
 document.addEventListener("click",function(e){
@@ -1025,8 +1066,8 @@ document.addEventListener("click",function(e){
   var t=e.target,go=t.closest&&t.closest("[data-lgo]");
   var home=t.closest&&(t.closest("[data-home]")||t.closest("[data-logo]"));
   var feat=t.closest&&t.closest("[data-lfeat]");
-  if(go){st.showLogin=true;st.lerr="";render();window.scrollTo(0,0);var fi=$("lid");if(fi&&!fi.disabled)setTimeout(function(){fi.focus();},80);return;}
-  if(home){st.showLogin=false;st.lerr="";st.lid="";st.lpw="";render();window.scrollTo(0,0);return;}
+  if(go){st.showLogin=true;st.lerr="";st.loginErrors={};render();window.scrollTo(0,0);var fi=$("lid");if(fi&&!fi.disabled)setTimeout(function(){fi.focus();},80);return;}
+  if(home){st.showLogin=false;st.lerr="";st.lid="";st.lpw="";st.loginErrors={};render();window.scrollTo(0,0);return;}
   if(feat){var fs=$("feat");if(fs)fs.scrollIntoView({behavior:"smooth",block:"start"});return;}
 });
 document.addEventListener("click",function(e){
@@ -1055,12 +1096,12 @@ document.addEventListener("click",function(e){
   if(d.mailrefresh&&u.role==="admin"){refreshMail(true);return;}
   if(d.retrymail&&u.role==="admin"){retryMail(d.retrymail);return;}
   if(d.v){route(d.v);return;}
-  if(d.f&&canView("book")){st.fac=d.f;st.form.sj="";st.date=null;st.time=null;st.err="";render();}
-  else if(d.d&&canView("book")){st.date=d.d;st.time=null;st.err="";render();}
-  else if(d.t&&canView("book")){st.time=d.t;st.err="";render();}
+  if(d.f&&canView("book")){st.fac=d.f;st.form.sj="";st.date=null;st.time=null;st.err="";st.errScope="";render();}
+  else if(d.d&&canView("book")){st.date=d.d;st.time=null;st.err="";st.errScope="";render();}
+  else if(d.t&&canView("book")){st.time=d.t;st.err="";st.errScope="";render();}
   else if(d.m&&canView("book")&&MODES[d.m]){st.mode=d.m;render();}
-  else if(d.rd&&canView("resched")){st.rdate=d.rd;st.rtime=null;st.err="";render();}
-  else if(d.rt&&canView("resched")){st.rtime=d.rt;st.err="";render();}
+  else if(d.rd&&canView("resched")){st.rdate=d.rd;st.rtime=null;st.err="";st.errScope="";render();}
+  else if(d.rt&&canView("resched")){st.rtime=d.rt;st.err="";st.errScope="";render();}
   else if(d.rs2&&canView("resched")){b=getB(d.rs2);if(owns(u,b)&&active(b)){st.rb=b.id;st.rdate=null;st.rtime=null;st.form.rs="";route("resched");}}
   else if(d.openchat&&canView("chat")){b=getB(d.openchat);if(owns(u,b)){st.cb=b.id;route("chat");}}
   else if(d.th&&canView("chat")){b=getB(d.th);if(owns(u,b)){st.cb=b.id;clearAttach();render();}}
@@ -1088,7 +1129,7 @@ document.addEventListener("click",function(e){
     else if(!st.date||!st.time)msg="Select a date and an open time.";
     else if(taken(st.fac,st.date,st.time))msg="That time was just booked by someone else. Select another time.";
     else if(clash(u.id,st.date,st.time))msg="You already have a consultation at that date and time.";
-    if(msg){st.err=msg;var er=$("err");if(er)er.textContent=msg;return;}
+    if(msg){st.err=msg;st.errScope=!st.fac?"booking-faculty":"booking-time";render();return;}
     st.bookingBusy=true;el.disabled=true;el.textContent="Submitting…";
     try{
       var nb={id:rid("b"),ref:mkref(st.date),fid:st.fac,date:st.date,time:st.time,sid:u.id,name:u.name,email:em,topic:(fById(st.fac).subjects.indexOf(F.sj)>-1?F.sj:fById(st.fac).subjects[0]),concern:F.cn,note:F.nt.trim(),mode:st.mode,status:"pending",created:new Date().toISOString()};
@@ -1105,7 +1146,7 @@ document.addEventListener("click",function(e){
     else if(st.rdate===b.date&&st.rtime===b.time)msg2="Choose a time different from the current one.";
     else if(taken(b.fid,st.rdate,st.rtime,b.id))msg2="That time is no longer available.";
     else if(clash(b.sid,st.rdate,st.rtime,b.id))msg2="The student already has a consultation at that time.";
-    if(msg2){st.err=msg2;var er2=$("rerr");if(er2)er2.textContent=msg2;return;}
+    if(msg2){st.err=msg2;st.errScope="reschedule-time";render();return;}
     var rs=st.form.rs.trim(),f2=fById(b.fid);
     if(stu){
       b.req={date:st.rdate,time:st.rtime,reason:rs,at:new Date().toISOString()};logEv("Reschedule requested",b.ref);
