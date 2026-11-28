@@ -151,9 +151,9 @@ pre{margin:8px 0 0;overflow-x:auto;white-space:pre}
 .threads{padding:8px;margin:0;max-height:560px;overflow:auto}
 .thr{display:block;width:100%;text-align:left;background:none;border:1px solid transparent;border-radius:10px;padding:9px 12px;cursor:pointer;margin-bottom:4px;transition:transform .22s ease,background .22s ease}
 .thr:hover{background:var(--glass2);transform:translateX(3px)}
-.thr[aria-pressed="true"]{background:var(--sel);border-color:var(--selb)}
+.thr[aria-pressed="true"]{background:var(--sel);border-color:var(--selb);box-shadow:inset 3px 0 0 var(--pri);font-weight:600}
 .thr small{display:block;color:var(--mute)}
-.nbadge{background:var(--gold);color:#12213d;border-radius:99px;font-size:.72rem;padding:0 7px;margin-left:8px;font-weight:700}
+.nbadge{background:var(--gold);color:#12213d;border-radius:99px;font-size:.72rem;padding:0 7px;margin-left:8px;font-weight:700;white-space:nowrap}
 .chatpane{margin:0;display:flex;flex-direction:column}
 .chead{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;border-bottom:1px solid var(--line);padding-bottom:10px;margin-bottom:10px}
 .meet-card{display:flex;align-items:center;gap:12px;padding:12px 14px;margin:0 0 12px;border:1px solid var(--line);border-left:4px solid var(--gold);border-radius:10px;background:var(--glass2)}

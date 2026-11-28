@@ -371,7 +371,7 @@ function vChat(){
   reads[u.id+"|"+cur.b.id]=cur.ms.length;put(RKEY,reads);th=threadsFor(u);
   var b=cur.b,f=fById(b.fid),other=u.role==="student"?f.name:b.name,closed=!active(b),pend=(st.attachFor===b.id&&st.attach)?st.attach:[];
   var threadPage=pagedList("chatThreads",th);
-  h+='<div class="chatwrap"><div class="threads panel">'+threadPage.items.map(function(t){var o=u.role==="student"?fById(t.b.fid).name:t.b.name;return '<button class="thr" data-th="'+t.b.id+'" aria-pressed="'+(t.b.id===b.id)+'"><b>'+esc(o)+(t.un?'<span class="nbadge">'+t.un+'</span>':'')+'</b><small>'+esc(nice(t.b.date))+', '+t12(t.b.time)+'</small><small>'+MODES[t.b.mode||"face"]+' · '+t.b.status+'</small></button>';}).join("")+threadPage.controls+'</div>';
+  h+='<div class="chatwrap"><div class="threads panel">'+threadPage.items.map(function(t){var o=u.role==="student"?fById(t.b.fid).name:t.b.name,current=t.b.id===b.id,unreadLabel=t.un?t.un+" unread message"+(t.un===1?"":"s"):"No unread messages";return '<button class="thr" data-th="'+t.b.id+'" aria-pressed="'+current+'" aria-label="Conversation with '+esc(o)+(current?", current conversation":"")+", "+esc(nice(t.b.date))+" at "+t12(t.b.time)+", "+esc(MODES[t.b.mode||"face"])+", "+esc(t.b.status)+", "+unreadLabel+'"><b>'+esc(o)+(t.un?'<span class="nbadge" aria-hidden="true">'+t.un+'</span>':'')+'</b><small>'+esc(nice(t.b.date))+', '+t12(t.b.time)+'</small><small>'+MODES[t.b.mode||"face"]+' · '+t.b.status+'</small></button>';}).join("")+threadPage.controls+'</div>';
   h+='<div class="panel chatpane"><div class="chead"><div><h2 style="margin:0">'+esc(other)+'</h2><p class="sub" style="margin:0">'+esc(nice(b.date))+' at '+t12(b.time)+' · '+MODES[b.mode||"face"]+'</p></div>'+tag(b.status)+'</div>';
   if(b.mode==="online"&&active(b)&&bookingWindowOpen(b)){
     var meet=meetURL(f.meet);
@@ -800,6 +800,12 @@ function ddChat(u){
   if(!th.length)h+='<p class="dempty">No conversations yet.</p>';
   return h+'<button class="dfoot" data-v="chat">Open Messages</button></div>';
 }
+function scrollToLatestMessage(){
+  var box=$("msgs");
+  if(!box)return;
+  box.scrollTop=box.scrollHeight;
+  requestAnimationFrame(function(){if($("msgs")===box)box.scrollTop=box.scrollHeight;});
+}
 function render(){
   var a=$("app");
   try{
@@ -821,7 +827,7 @@ function render(){
     st.enter=false;st.navIn=false;document.body.style.overflow=(st.detail||st.pwpop||st.emailAcct||st.confirm)?"hidden":"";if(st.dfocus){var cb=document.querySelector("[data-closedt]");if(cb)cb.focus();st.dfocus=false;}if(st.pwfocus){var pb=document.querySelector("[data-closepw]");if(pb)pb.focus();st.pwfocus=false;}if(st.emailFocus){var eb=$("eemail");if(eb){eb.focus();try{eb.setSelectionRange(eb.value.length,eb.value.length);}catch(x){}}st.emailFocus=false;}if(st.confirmFocus){var yb=document.querySelector(st.confirm&&st.confirm.reasonRequired?"#cancelreason":"[data-confirmyes]");if(yb)yb.focus();st.confirmFocus=false;}st.dnew=false;
     var ink=document.querySelector(".navink"),act=document.querySelector(".mainnav [aria-current=page]");
     if(ink&&act){var L=act.offsetLeft,W=act.offsetWidth;ink.style.left=L+"px";ink.style.width=W+"px";if(st.inkPrev&&(st.inkPrev.l!==L||st.inkPrev.w!==W)&&ink.animate)ink.animate([{left:st.inkPrev.l+"px",width:st.inkPrev.w+"px"},{left:L+"px",width:W+"px"}],{duration:380,easing:"cubic-bezier(.4,0,.2,1)"});st.inkPrev={l:L,w:W};}else{if(ink)ink.style.display="none";st.inkPrev=null;}
-    if(st.view==="chat"&&!st.nf){var m=$("msgs");if(m)m.scrollTop=m.scrollHeight;}
+    if(st.view==="chat"&&!st.nf)scrollToLatestMessage();
     clocks();
   }catch(err){crash(err);}
 }
