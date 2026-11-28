@@ -153,7 +153,7 @@ function badge(v,u){var n=0;if(v==="chat")n=unreadMsgs(u);else if(v==="notif")n=
 function canView(v){return !!st.user&&VIEWS[st.user.role].some(function(x){return x[0]===v;});}
 try{var sid0=sessionStorage.getItem(SKEY),su=sid0&&uById(sid0);if(su&&!disabled[su.id]){st.user=su;st.view=VIEWS[su.role][0][0];st.mustChange=sessionStorage.getItem(TMPKEY)==="1";}}catch(e){}
 
-function tag(s){return '<span class="st s-'+s+'">'+s.charAt(0).toUpperCase()+s.slice(1)+'</span>';}
+function tag(s){return '<span class="st booking-status s-'+s+'">'+s.charAt(0).toUpperCase()+s.slice(1)+'</span>';}
 var PAGE_SIZE=20;
 function pageWindow(key,total){
   var pageCount=Math.max(1,Math.ceil(total/PAGE_SIZE));
@@ -175,7 +175,7 @@ function tbl(h,rows,empty,ids,pageKey){
   if(!rows.length)return '<div class="tw"><p class="empty">'+empty+'</p></div>';
   var controls="";
   if(pageKey){var page=pageWindow(pageKey,rows.length);rows=rows.slice(page.start,page.end);if(ids)ids=ids.slice(page.start,page.end);controls=pageControls(pageKey,page.total);}
-  return '<div class="tw"><table><thead><tr>'+h.map(function(x){return "<th>"+x+"</th>";}).join("")+'</tr></thead><tbody>'+rows.map(function(r,i){var id=ids&&ids[i];return "<tr"+(id?' class="clk" data-bid="'+esc(id)+'" tabindex="0" title="Click to see the booking details"':"")+">"+r.map(function(c){return "<td>"+c+"</td>";}).join("")+"</tr>";}).join("")+'</tbody></table></div>'+controls;
+  return '<div class="tw"><table><thead><tr>'+h.map(function(x){return "<th>"+x+"</th>";}).join("")+'</tr></thead><tbody>'+rows.map(function(r,i){var id=ids&&ids[i];return "<tr"+(id?' class="clk" data-bid="'+esc(id)+'" tabindex="0" title="Click to see the booking details"':"")+">"+r.map(function(c){var cls=c.indexOf('class="booking-datetime"')>-1?" class=\"booking-datetime-cell\"":(c.indexOf("booking-status")>-1?" class=\"booking-status-cell\"":"");return "<td"+cls+">"+c+"</td>";}).join("")+"</tr>";}).join("")+'</tbody></table></div>'+controls;
 }
 function bars(items){
   var m=Math.max.apply(null,items.map(function(i){return i[1];}).concat([1]));
@@ -183,7 +183,7 @@ function bars(items){
 }
 function sel(key,val,opts,lab){return '<div><label for="x'+key+'">'+lab+'</label><select id="x'+key+'" data-s="'+key+'">'+opts.map(function(o){return '<option value="'+esc(o[0])+'"'+(o[0]===val?" selected":"")+'>'+esc(o[1])+'</option>';}).join("")+'</select></div>';}
 var STATS=[["all","All statuses"],["pending","Pending"],["confirmed","Confirmed"],["completed","Completed"],["declined","Declined"],["cancelled","Cancelled"]];
-function dtCell(b){return esc(nice(b.date))+'<div class="sub">'+t12(b.time)+'</div>'+(b.req?'<div class="sub">Change requested: '+esc(nice(b.req.date))+', '+t12(b.req.time)+'</div>':"");}
+function dtCell(b){return '<div class="booking-datetime"><span class="booking-date">'+esc(nice(b.date))+'</span><span class="booking-time">'+t12(b.time)+'</span>'+(b.req?'<div class="booking-change">Change requested: '+esc(nice(b.req.date))+', '+t12(b.req.time)+'</div>':"")+'</div>';}
 function modeCell(b){
   var f=fById(b.fid),m=b.mode||"face",h='<b>'+MODES[m]+'</b>';
   if(m==="face")h+='<div class="sub">'+esc(f.room)+'</div>';
@@ -266,7 +266,7 @@ function vMine(){
 function vDone(){
   var u=st.user,stu=u.role==="student",l=sorted(bookings.filter(function(b){return b.status==="completed"&&owns(u,b);})).reverse();
   var h='<h1>Completed consultations</h1><p class="lead">'+(stu?"Your finished consultations.":"Consultations you have marked as done.")+' Select a row to see its details. '+l.length+' completed.</p>';
-  return h+tbl(["Reference",stu?"Faculty and subject":"Student and subject","Date and time","Type","Concern","Completed on"],l.map(function(b){var f=fById(b.fid);return ['<span class="mono">'+esc(b.ref)+'</span>',stu?esc(f.name)+'<div class="sub">'+esc(b.topic)+'</div>':esc(b.name)+'<div class="sub">'+esc(b.topic)+'</div>',dtCell(b),MODES[b.mode||"face"],esc(b.concern||"—"),b.doneAt?esc(ts(b.doneAt)):"—"];}),"No completed consultations yet. When a faculty member marks a confirmed consultation as done, it appears here.",l.map(function(b){return b.id;}),"completedBookings");
+  return h+tbl(["Reference",stu?"Faculty and subject":"Student and subject","Date and time","Type","Concern","Status","Completed on"],l.map(function(b){var f=fById(b.fid);return ['<span class="mono">'+esc(b.ref)+'</span>',stu?esc(f.name)+'<div class="sub">'+esc(b.topic)+'</div>':esc(b.name)+'<div class="sub">'+esc(b.topic)+'</div>',dtCell(b),MODES[b.mode||"face"],esc(b.concern||"—"),tag(b.status),b.doneAt?esc(ts(b.doneAt)):"—"];}),"No completed consultations yet. When a faculty member marks a confirmed consultation as done, it appears here.",l.map(function(b){return b.id;}),"completedBookings");
 }
 function detailHTML(){
   var u=st.user,b=getB(st.detail);

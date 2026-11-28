@@ -100,6 +100,18 @@ tbody tr:hover td{background:var(--hl)}
 .st{font-weight:500;white-space:nowrap}
 .st::before{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;background:var(--gray)}
 .s-pending::before{background:var(--warn)}.s-confirmed::before{background:var(--ok)}.s-declined::before{background:var(--bad)}
+.booking-status{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border:1px solid var(--line);border-radius:999px;background:var(--hl);font-size:.8rem;line-height:1.2;font-weight:600}
+.booking-status::before{width:7px;height:7px;flex:0 0 7px;margin:0}
+.booking-status.s-pending{border-color:var(--warn)}
+.booking-status.s-confirmed{border-color:var(--ok)}
+.booking-status.s-declined{border-color:var(--bad)}
+.booking-status.s-completed{border-color:var(--pri)}
+.booking-status.s-cancelled{border-color:var(--gray)}
+.booking-datetime{display:flex;flex-direction:column;align-items:flex-start;gap:2px;min-width:132px}
+.booking-date{font-weight:600;line-height:1.35;white-space:nowrap}
+.booking-time{color:var(--mute);font-size:.82rem;font-variant-numeric:tabular-nums;white-space:nowrap}
+.booking-change{margin-top:4px;padding-top:4px;border-top:1px solid var(--line);color:var(--mute);font-size:.78rem;line-height:1.35}
+.booking-datetime-cell,.booking-status-cell{vertical-align:middle}
 .acts{display:flex;gap:6px;flex-wrap:wrap}
 .empty{padding:18px 14px;color:var(--mute)}
 .notice{padding:11px 16px;margin-bottom:12px;border-left:4px solid var(--ok)}
