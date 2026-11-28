@@ -1206,7 +1206,14 @@ document.addEventListener("click",function(e){
   if(st.menu&&!(e.target.closest&&e.target.closest(".usermenu"))){st.menu=false;render();}
 });
 document.addEventListener("keydown",function(e){
-  if(e.key==="Escape"){if(st.confirm){st.confirm=null;st.confirmFocus=false;render();}else if(st.emailAcct){st.emailAcct=null;st.emailFocus=false;render();}else if(st.pwpop){st.pwpop=null;st.pwfocus=false;render();}else if(st.detail){closeDetail();}else if(st.menu){st.menu=false;render();}return;}
+  if(e.key==="Escape"){
+    if(st.confirm){if(!st.confirm.busy){e.preventDefault();st.confirm=null;st.confirmFocus=false;render();}return;}
+    if(st.emailAcct){st.emailAcct=null;st.emailFocus=false;render();}
+    else if(st.pwpop){st.pwpop=null;st.pwfocus=false;render();}
+    else if(st.detail){e.preventDefault();closeDetail();}
+    else if(st.menu){st.menu=false;render();}
+    return;
+  }
   if((e.key==="Enter"||e.key===" ")&&e.target.matches&&e.target.matches("tr[data-bid]")){e.preventDefault();openDetail(e.target.dataset.bid);}
 });
 document.addEventListener("click",function(e){
