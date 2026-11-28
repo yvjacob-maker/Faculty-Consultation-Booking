@@ -207,7 +207,7 @@ function landingHTML(){
   h+=feature("book","Book in a few steps","Choose a faculty member, pick an open date and time, and send your consultation request.");
   h+=feature("avail","Three consultation modes","Meet face to face, join a Google Meet link, or talk through the portal Messages page.");
   h+=feature("notif","Track every request","Follow pending, confirmed, completed, and rescheduled consultations from one dashboard.");
-  h+=feature("chat","Messages with attachments","Keep the discussion going and send photos, videos, and files with your conversation.","New");
+  h+=feature("chat","Messages with attachments","Keep the discussion going and send photos, videos, and files with your conversation.");
   h+=feature("all","Availability at a glance","Faculty set their consultation days, time slots, room, and online meeting link.");
   h+=feature("users","Admin oversight","Manage accounts, review all bookings, and audit activity from the administrator dashboard.");
   h+='</div></section>';
