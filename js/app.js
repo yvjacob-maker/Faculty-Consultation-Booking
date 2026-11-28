@@ -261,12 +261,12 @@ function vMine(){
   var u=st.user,l=sortedNewest(bookings.filter(function(b){return b.sid===u.id;}));
   var h='<h1>My bookings</h1><p class="lead">Track your consultations. You can chat, request a different time, or cancel a booking.</p>';
   if(st.notice){h+='<div class="notice" role="status">'+esc(st.notice)+'</div>';st.notice="";}
-  return h+tbl(["Reference","Faculty and subject","Date and time","Type","Concern","Status","Actions"],l.map(function(b){var f=fById(b.fid);return ['<span class="mono">'+esc(b.ref)+'</span>',esc(f.name)+'<div class="sub">'+esc(b.topic)+'</div>',dtCell(b),modeCell(b),concernCell(b),tag(b.status),'<div class="acts"><button class="btn sm ghost" data-openchat="'+b.id+'">Chat</button>'+(active(b)&&!b.req?'<button class="btn sm ghost" data-rs2="'+b.id+'">Reschedule</button>':"")+(active(b)?'<button class="btn sm ghost" data-cancel="'+b.id+'">Cancel</button>':"")+'</div>'];}),"You have no bookings yet. Open “Book a consultation” to send a request.",l.map(function(b){return b.id;}),"mineBookings");
+  return h+tbl(["Reference","Faculty and subject","Date and time","Type","Concern","Status","Actions"],l.map(function(b){var f=fById(b.fid);return ['<span class="mono">'+esc(b.ref)+'</span>',esc(f.name)+'<div class="sub">'+esc(b.topic)+'</div>',dtCell(b),modeCell(b),concernCell(b),tag(b.status),'<div class="acts"><button class="btn sm ghost" data-openchat="'+b.id+'">Chat</button>'+(active(b)&&!b.req?'<button class="btn sm ghost" data-rs2="'+b.id+'">Reschedule</button>':"")+(active(b)?'<button class="btn sm ghost" data-cancel="'+b.id+'">Cancel</button>':"")+'</div>'];}),"No bookings yet. Use Book a consultation to send your first request; submitted requests will appear here.",l.map(function(b){return b.id;}),"mineBookings");
 }
 function vDone(){
   var u=st.user,stu=u.role==="student",l=sorted(bookings.filter(function(b){return b.status==="completed"&&owns(u,b);})).reverse();
   var h='<h1>Completed consultations</h1><p class="lead">'+(stu?"Your finished consultations.":"Consultations you have marked as done.")+' Select a row to see its details. '+l.length+' completed.</p>';
-  return h+tbl(["Reference",stu?"Faculty and subject":"Student and subject","Date and time","Type","Concern","Status","Completed on"],l.map(function(b){var f=fById(b.fid);return ['<span class="mono">'+esc(b.ref)+'</span>',stu?esc(f.name)+'<div class="sub">'+esc(b.topic)+'</div>':esc(b.name)+'<div class="sub">'+esc(b.topic)+'</div>',dtCell(b),MODES[b.mode||"face"],esc(b.concern||"—"),tag(b.status),b.doneAt?esc(ts(b.doneAt)):"—"];}),"No completed consultations yet. When a faculty member marks a confirmed consultation as done, it appears here.",l.map(function(b){return b.id;}),"completedBookings");
+  return h+tbl(["Reference",stu?"Faculty and subject":"Student and subject","Date and time","Type","Concern","Status","Completed on"],l.map(function(b){var f=fById(b.fid);return ['<span class="mono">'+esc(b.ref)+'</span>',stu?esc(f.name)+'<div class="sub">'+esc(b.topic)+'</div>':esc(b.name)+'<div class="sub">'+esc(b.topic)+'</div>',dtCell(b),MODES[b.mode||"face"],esc(b.concern||"—"),tag(b.status),b.doneAt?esc(ts(b.doneAt)):"—"];}),"No completed consultations yet. Completed bookings will appear here after a faculty member marks a consultation as done.",l.map(function(b){return b.id;}),"completedBookings");
 }
 function detailHTML(){
   var u=st.user,b=getB(st.detail);
@@ -311,6 +311,7 @@ function vInbox(){
   var h='<h1>Consultation requests</h1><p class="lead">Requests addressed to you. '+all.filter(function(b){return b.status==="pending";}).length+' awaiting your response, '+all.filter(function(b){return b.req;}).length+' reschedule request(s).</p>';
   if(st.notice){h+='<div class="notice" role="status">'+esc(st.notice)+'</div>';st.notice="";}
   h+='<div class="tb">'+sel("ff",st.ff,STATS,"Show")+'</div>';
+  var empty=all.length?"No requests match the selected status. Choose another status or select All statuses above.":"No consultation requests yet. New requests from students will appear here.";
   return h+tbl(["Reference","Student and subject","Date and time","Type","Concern","Status","Actions"],l.map(function(b){
     var a='';
     if(b.req)a+='<button class="btn sm ok" data-appr="'+b.id+'">Approve change</button><button class="btn sm ghost" data-keep="'+b.id+'">Keep original</button>';
@@ -318,7 +319,7 @@ function vInbox(){
     if(active(b))a+='<button class="btn sm ghost" data-rs2="'+b.id+'">Reschedule</button>';
     if(b.status==="confirmed")a+='<button class="btn sm ok" data-done="'+b.id+'">Mark as done</button>';
     a+='<button class="btn sm ghost" data-openchat="'+b.id+'">Chat</button>';
-    return ['<span class="mono">'+esc(b.ref)+'</span>',esc(b.name)+'<div class="sub">'+esc(b.sid)+'</div><div class="sub">'+esc(b.topic)+'</div>',dtCell(b),modeCell(b),concernCell(b)+(b.req&&b.req.reason?'<div class="sub">Reason for change: '+esc(b.req.reason)+'</div>':""),tag(b.status),'<div class="acts">'+a+'</div>'];    }),"No requests match this filter.",l.map(function(b){return b.id;}),"facultyInbox");
+    return ['<span class="mono">'+esc(b.ref)+'</span>',esc(b.name)+'<div class="sub">'+esc(b.sid)+'</div><div class="sub">'+esc(b.topic)+'</div>',dtCell(b),modeCell(b),concernCell(b)+(b.req&&b.req.reason?'<div class="sub">Reason for change: '+esc(b.req.reason)+'</div>':""),tag(b.status),'<div class="acts">'+a+'</div>'];    }),empty,l.map(function(b){return b.id;}),"facultyInbox");
 }
 function vResched(){
   var u=st.user,b=getB(st.rb);
@@ -354,7 +355,7 @@ var CLIP='<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="cu
 function vChat(){
   var u=st.user,th=threadsFor(u),cur=th.filter(function(t){return t.b.id===st.cb;})[0]||th[0];
   var h='<h1>Messages</h1><p class="lead">Talk with your '+(u.role==="student"?"faculty member":"students")+' about a consultation. Each booking has its own conversation. You can also send photos, videos, and files.</p>';
-  if(!cur)return h+'<div class="panel"><p class="empty">No conversations yet. One appears for each booking.</p></div>';
+  if(!cur)return h+'<div class="panel"><p class="empty">No conversations yet. A conversation appears here after you have a consultation booking.</p></div>';
   st.cb=cur.b.id;
   if(st.attachFor&&st.attachFor!==cur.b.id)clearAttach();
   reads[u.id+"|"+cur.b.id]=cur.ms.length;put(RKEY,reads);th=threadsFor(u);
@@ -373,7 +374,7 @@ function vChat(){
     else if(u.role==="faculty")h+='<button type="button" class="btn sm ghost meet-setup" data-v="avail">Set up link</button>';
     h+='</section>';
   }
-  h+='<div class="msgs" id="msgs">'+(cur.ms.length?cur.ms.map(function(m){return '<div class="bub'+(m.uid===u.id?" me":"")+'"><span class="who">'+esc(m.name)+'</span>'+msgBody(m)+'<span class="when">'+ts(m.t)+'</span></div>';}).join(""):'<p class="empty">No messages yet. Say hello.</p>')+'</div>';
+  h+='<div class="msgs" id="msgs">'+(cur.ms.length?cur.ms.map(function(m){return '<div class="bub'+(m.uid===u.id?" me":"")+'"><span class="who">'+esc(m.name)+'</span>'+msgBody(m)+'<span class="when">'+ts(m.t)+'</span></div>';}).join(""):'<p class="empty">No messages yet. Write a message below to start the conversation.</p>')+'</div>';
   if(pend.length)h+='<div class="apend" aria-label="Files ready to send">'+pend.map(function(a,i){return '<div class="apitem">'+(a.kind==="video"?'<video src="'+a.preview+'" muted></video>':(a.kind==="file"?'<span class="apfile">'+FILEICON+'</span>':'<img src="'+a.preview+'" alt="">'))+'<span class="apname" title="'+esc(a.name)+'">'+esc(a.name)+'</span><button type="button" class="apx" data-rmatt="'+i+'" aria-label="Remove '+esc(a.name)+'">×</button></div>';}).join("")+'</div>';
   h+='<form id="cf" class="cform" novalidate><label class="attbtn'+(closed?" off":"")+'" title="Attach a photo, video, or file" aria-label="Attach a photo, video, or file">'+CLIP+'<input id="cfile" type="file" accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.rtf,.odt,.ods,.odp,.md,.epub,.zip,.rar,.7z,.tar,.gz,.json,.xml,.sql,.py,.java,.c,.h,.cpp,.cs,.php,.js,.ts,.jsx,.tsx,.css,.tif,.tiff" multiple'+(closed?" disabled":"")+'></label><input id="cm" maxlength="500" aria-label="Message" placeholder="'+(closed?"This booking is closed":(pend.length?"Add a caption (optional)":"Write a message"))+'" autocomplete="off"'+(closed?" disabled":"")+'><button class="btn" type="submit"'+(closed||st.messageBusy?" disabled":"")+'>'+(st.messageBusy?"Sending…":"Send")+'</button></form></div></div>';
   reads[u.id+"|"+b.id]=cur.ms.length;put(RKEY,reads);
@@ -425,7 +426,8 @@ function vAll(){
   var l=sortedNewest(bookings.filter(function(b){var stu=uById(b.sid);return (st.as==="all"||b.status===st.as)&&(st.af==="all"||b.fid===st.af)&&(st.brf==="all"||lastActor(b)===st.brf)&&(st.bpf==="all"||progOf(stu&&stu.unit)===st.bpf)&&mq(b);}));
   var h='<h1>All bookings</h1><p class="lead">Read-only view of every consultation request. Select a row to see its details. '+l.length+' of '+bookings.length+' shown.</p>';
   h+=fbar("q","xq","Name, ID, reference, subject…",sel("as",st.as,STATS,"Status")+sel("af",st.af,[["all","All faculty"]].concat(FAC.map(function(f){return [f.id,f.name];})),"Faculty member")+sel("brf",st.brf,ROLEOPTS,"Last action by")+sel("bpf",st.bpf,PROGOPTS,"Student program"),"bookings");
-  return h+tbl(["Reference","Student","Faculty and subject","Date and time","Type","Concern","Status"],l.map(function(b){return ['<span class="mono">'+esc(b.ref)+'</span>',esc(b.name)+'<div class="sub">'+esc(b.sid)+'</div>',esc(fById(b.fid).name)+'<div class="sub">'+esc(b.topic)+'</div>',dtCell(b),MODES[b.mode||"face"],esc(b.concern||"—"),tag(b.status)];}),"No bookings match these filters.",l.map(function(b){return b.id;}),"allBookings");
+  var empty=bookings.length?"No bookings match the current search and filters. Adjust them or use Clear filters above.":"No bookings yet. Student consultation requests will appear here.";
+  return h+tbl(["Reference","Student","Faculty and subject","Date and time","Type","Concern","Status"],l.map(function(b){return ['<span class="mono">'+esc(b.ref)+'</span>',esc(b.name)+'<div class="sub">'+esc(b.sid)+'</div>',esc(fById(b.fid).name)+'<div class="sub">'+esc(b.topic)+'</div>',dtCell(b),MODES[b.mode||"face"],esc(b.concern||"—"),tag(b.status)];}),empty,l.map(function(b){return b.id;}),"allBookings");
 }
 function vLog(){
   var q=(st.lq||"").trim().toLowerCase(),all=logs.slice().reverse();
@@ -437,7 +439,7 @@ function vLog(){
   });
   var h='<h1>Activity log</h1><p class="lead">Sign-ins, bookings and decisions, newest first. '+l.length+' of '+all.length+' entries match'+(l.length>200?" (latest 200 shown)":"")+'.</p>';
   h+=fbar("lq","xlq","User, action or detail…",sel("lrf",st.lrf,ROLEOPTS,"Role")+sel("lpf",st.lpf,PROGOPTS,"Student program"),"log");
-  return h+logTbl(l.slice(0,200),"No activity matches these filters.","activityLog");
+  return h+logTbl(l.slice(0,200),"No activity matches the current filters. Adjust your search or filters, or use Clear filters above.","activityLog");
 }
 function pwField(id,name,label,ac){return '<label for="'+id+'">'+label+'</label><div class="pwwrap"><input id="'+id+'" name="'+name+'" type="password" autocomplete="'+ac+'"><button type="button" class="eye" data-eye="'+id+'" aria-label="Show password" aria-pressed="false">'+EYEOFF+'</button></div>';}
 function vPw(){
@@ -744,7 +746,7 @@ function vUsers(){
     var off=!!disabled[u.id],meta=[u.email||"No email on file",u.fid?subjText(fById(u.fid)):""].filter(Boolean).join(" · ");
     var status=off?'<span class="st s-declined">Disabled</span>':(u.setupPending?'<span class="st s-pending">Setup pending</span>':'<span class="st s-confirmed">Active</span>');
     return ['<span class="mono">'+esc(u.id)+'</span>',esc(u.name)+'<div class="sub">'+esc(meta)+'</div>',ROLE[u.role],esc(u.unit),status,'<div class="acts">'+(u.id===st.user.id?"":'<button class="btn sm ghost" data-tog="'+esc(u.id)+'">'+(off?"Enable":"Disable")+'</button>')+'<button class="btn sm ghost" data-semail="'+esc(u.id)+'">'+(u.email?"Edit email":"Add email")+'</button><button class="btn sm ghost" data-rsp="'+esc(u.id)+'">Reset password</button></div>'];
-  }),"No accounts match these filters.",null,"accounts");
+  }),USERS.length?"No accounts match the current search and filters. Adjust them or use Clear filters above.":"No accounts yet. Add an account above or import a list to get started.",null,"accounts");
 }
 var VF={done:vDone,pw:vPw,avail:vAvail,book:vBook,mine:vMine,inbox:vInbox,resched:vResched,chat:vChat,notif:vNotif,dash:vDash,all:vAll,users:vUsers,log:vLog};
 
